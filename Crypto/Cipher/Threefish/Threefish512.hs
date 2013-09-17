@@ -8,6 +8,12 @@ import Crypto.Cipher.Threefish.Common
 import Data.Array.Unboxed
 import Data.Serialize
 import Control.Applicative
+import Crypto.Classes
+import Data.Tagged
+import qualified Data.ByteString as BS
+
+-- | 512 bit Threefish block cipher.
+data Threefish512 = Threefish512 Tweak Key512
 
 data Block512 = Block512 {-# UNPACK #-} !Word64
                          {-# UNPACK #-} !Word64
@@ -31,7 +37,12 @@ instance Serialize Block512 where
     putWord64le a >> putWord64le b >> putWord64le c >> putWord64le d
     putWord64le e >> putWord64le f >> putWord64le g >> putWord64le h
   get =
-    Block512 <$> get <*> get <*> get <*> get <*> get <*> get <*> get <*> get
+    Block512 <$> getWord64le <*> getWord64le <*> getWord64le <*> getWord64le
+             <*> getWord64le <*> getWord64le <*> getWord64le <*> getWord64le
+
+instance Serialize Threefish512 where
+  put (Threefish512 tweak key) = put tweak >> put key
+  get = Threefish512 <$> get <*> get
 
 -- | Rotational constants for TF512
 rot :: UArray Word64 Int
@@ -122,3 +133,19 @@ decrypt512 (Block512 k0 k1 k2 k3 k4 k5 k6 k7) (Tweak t0 t1) !input =
         (c4, d4) = unmixKey c3 d3 (rot ! ((r+1) .&. 31)) (key 2) (key 3)
         (e4, f4) = unmixKey e3 f3 (rot ! ((r+2) .&. 31)) (key 4) (key 5 + t 0)
         (g4, h4) = unmixKey g3 h3 (rot ! ((r+3) .&. 31)) (key 6 + t 1) (key 7+keyOff)
+
+instance BlockCipher Threefish512 where
+  blockSize = Tagged 512
+  keyLength = Tagged 512
+  encryptBlock (Threefish512 tweak key) block =
+    case decode block of
+      Right block' -> encode (encrypt512 key tweak block')
+      Left e       -> error $ "Not a valid Threefish512 block: " ++ show e
+  decryptBlock (Threefish512 tweak key) block =
+    case decode block of
+      Right block' -> encode (decrypt512 key tweak block')
+      Left e       -> error $ "Not a valid Threefish512 block: " ++ show e
+  buildKey bs | BS.length bs /= 64 = Nothing
+              | otherwise          = e2m $ do
+                key <- decode bs
+                return $! Threefish512 defaultTweak key

@@ -8,6 +8,9 @@ import Crypto.Cipher.Threefish.Common
 import Data.Array.Unboxed
 import Data.Serialize
 import Control.Applicative
+import Crypto.Classes
+import Data.Tagged
+import qualified Data.ByteString as BS
 
 data Block256 = Block256 {-# UNPACK #-} !Word64
                          {-# UNPACK #-} !Word64
@@ -25,7 +28,14 @@ instance Serialize Block256 where
   put (Block256 a b c d) =
     putWord64le a >> putWord64le b >> putWord64le c >> putWord64le d
   get =
-    Block256 <$> get <*> get <*> get <*> get
+    Block256 <$> getWord64le <*> getWord64le <*> getWord64le <*> getWord64le
+
+instance Serialize Threefish256 where
+  put (Threefish256 tweak key) = put tweak >> put key
+  get = Threefish256 <$> get <*> get
+
+-- | 256 bit Threefish block cipher.
+data Threefish256 = Threefish256 Tweak Key256
 
 -- | Rotational constants for TF256
 rot :: UArray Word64 Int
@@ -98,3 +108,17 @@ decrypt256 (Block256 k0 k1 k2 k3) (Tweak t0 t1) (Block256 a b c d) =
         (c3, b3) = unmix c2 b2 (rot ! ((r+3) .&. 15))
         (a4, b4) = unmixKey a3 b3 (rot ! (r .&. 15)) key0 key1
         (c4, d4) = unmixKey c3 d3 (rot ! ((r+1) .&. 15)) key2 key3
+
+instance BlockCipher Threefish256 where
+  blockSize = Tagged 256
+  keyLength = Tagged 256
+  encryptBlock (Threefish256 tweak key) block =
+    case decode block of
+      Right block' -> encode (encrypt256 key tweak block')
+      Left e       -> error $ "Not a valid Threefish512 block: " ++ show e
+  decryptBlock (Threefish256 tweak key) block =
+    case decode block of
+      Right block' -> encode (decrypt256 key tweak block')
+      Left e       -> error $ "Not a valid Threefish512 block: " ++ show e
+  buildKey bs | BS.length bs /= 32 = Nothing
+              | otherwise          = e2m (decode bs)
