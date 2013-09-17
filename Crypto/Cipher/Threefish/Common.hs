@@ -9,6 +9,7 @@ import Data.Serialize
 import Control.Applicative
 import qualified Data.ByteString as BS
 import Data.Char
+import Data.Default
 
 hexDigit :: Char -> Maybe Word8
 hexDigit c | c >= '0' && c <= '9' = Just $ fromIntegral $ ord c - ord '0'
@@ -63,6 +64,9 @@ instance Serialize Tweak where
 
 instance Show Tweak where
   show (Tweak low high) = showBytes low ++ showBytes high
+
+instance Default Tweak where
+  def = defaultTweak
 
 -- | Read any deserializable type from a hex string.
 readHex :: Serialize a => String -> Maybe a
