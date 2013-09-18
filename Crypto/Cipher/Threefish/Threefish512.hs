@@ -11,6 +11,7 @@ import Control.Applicative
 import Crypto.Classes
 import Data.Tagged
 import qualified Data.ByteString as BS
+import Data.List (foldl1')
 
 -- | 512 bit Threefish block cipher.
 data Threefish512 = Threefish512 Tweak Key512
@@ -59,8 +60,9 @@ encrypt512 (Block512 k0 k1 k2 k3 k4 k5 k6 k7) (Tweak t0 t1) !input =
         Block512 (a+k0) (b+k1) (c+k2) (d+k3)
                  (e+k4) (f+k5+t0) (g+k6+t1) (h+k7+18)
   where
+    k8 = foldl1' xor [k0,k1,k2,k3,k4,k5,k6,k7,keyConst]
     ks :: UArray Word64 Word64
-    !ks = listArray (0, 8) [k0, k1, k2, k3, k4, k5, k6, k7, keyConst]
+    !ks = listArray (0, 8) [k0, k1, k2, k3, k4, k5, k6, k7, k8]
     ts :: UArray Word64 Word64
     !ts = listArray (0, 2) [t0, t1, t0 `xor` t1]
     
