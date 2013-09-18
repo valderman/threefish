@@ -1,8 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 module Crypto.Cipher.Threefish.Class where
 import Crypto.Cipher.Threefish.Common
+import Data.Serialize
 
-class Threefish a b | a -> b where
+class Serialize a => Threefish a b | a -> b where
   -- | Create a Threefish key using a custom tweak value.
   threefishKey :: Tweak -> a -> b
   -- | Encrypt a block using the given key and tweak value.
