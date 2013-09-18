@@ -5,7 +5,6 @@ import Data.Word
 import Data.Bits
 import Crypto.Cipher.Threefish.Mix
 import Crypto.Cipher.Threefish.Common
-import Data.Array.Unboxed
 import Data.Serialize
 import Control.Applicative
 import Crypto.Classes
@@ -49,20 +48,23 @@ encrypt256 (Block256 k0 k1 k2 k3) (Tweak t0 t1) (Block256 a b c d) =
     rounds 1 (Block256 (a+k0) (b+k1+t0) (c+k2+t1) (d+k3))
   where
     !k4 = keyConst`xor`k0`xor`k1`xor`k2`xor`k3
-    ks :: UArray Word64 Word64
-    !ks = listArray (0, 4) [k0, k1, k2, k3, k4]
-    ts :: UArray Word64 Word64
-    !ts = listArray (0, 2) [t0, t1, t0 `xor` t1]
+    -- binary search key function - this actually is faster than whatever GHC
+    -- generates for the straightforward version!
+    kf n = if n < 2
+             then if n == 0 then k0 else k1
+             else if n == 2 then k2 else if n == 3 then k3 else k4
+    !t2 = t0 `xor` t1
+    tf 0 = t0 ; tf 1 = t1; tf _ = t2
 
     rounds 10 input  = input
     rounds !n !input = rounds (n+1) (eightRounds input n)
 
     {-# INLINE injectKey #-}
     injectKey !a !b !c !d !r =
-      (a + (ks ! (r`rem`5)),
-       b + (ks ! ((r+1) `rem` 5)) + (ts ! (r `rem` 3)),
-       c + (ks ! ((r+2) `rem` 5)) + (ts ! ((r+1) `rem` 3)),
-       d + (ks ! ((r+3) `rem` 5)) + r)
+      (a + (kf (r`rem`5)),
+       b + (kf ((r+1) `rem` 5)) + (tf (r `rem` 3)),
+       c + (kf ((r+2) `rem` 5)) + (tf ((r+1) `rem` 3)),
+       d + (kf ((r+3) `rem` 5)) + r)
 
     {-# INLINE eightRounds #-}
     eightRounds (Block256 a0 b0 c0 d0) !r =
@@ -95,20 +97,22 @@ decrypt256 (Block256 k0 k1 k2 k3) (Tweak t0 t1) !input =
     case rounds 1 input of 
       (Block256 a b c d) -> Block256 (a-k0) (b-(k1+t0)) (c-(k2+t1)) (d-k3)
   where
-    k4 = keyConst`xor`k0`xor`k1`xor`k2`xor`k3
-    ks :: UArray Word64 Word64
-    !ks = listArray (0, 4) [k0, k1, k2, k3, k4]
-    ts :: UArray Word64 Word64
-    !ts = listArray (0, 2) [t0, t1, t0 `xor` t1]
+    !k4 = keyConst`xor`k0`xor`k1`xor`k2`xor`k3
+    kf n = if n < 2
+             then if n == 0 then k0 else k1
+             else if n == 2 then k2 else if n == 3 then k3 else k4
+    !t2 = t0 `xor` t1
+    tf 0 = t0 ; tf 1 = t1; tf _ = t2
 
     rounds 10 input  = input
     rounds !n !input = rounds (n+1) (eightRounds input (10-n))
 
     {-# INLINE injectKey #-}
-    injectKey a b c d r = (a - (ks ! (r`rem`5)),
-                           b - ((ks ! ((r+1) `rem` 5)) + (ts ! (r `rem` 3))),
-                           c - ((ks ! ((r+2) `rem` 5)) + (ts ! ((r+1) `rem` 3))),
-                           d - ((ks ! ((r+3) `rem` 5)) + r))
+    injectKey !a !b !c !d !r =
+      (a - (kf (r`rem`5)),
+       b - ((kf ((r+1) `rem` 5)) + (tf (r `rem` 3))),
+       c - ((kf ((r+2) `rem` 5)) + (tf ((r+1) `rem` 3))),
+       d - ((kf ((r+3) `rem` 5)) + r))
 
     {-# INLINE eightRounds #-}
     eightRounds (Block256 a b c d) !r =
