@@ -7,7 +7,6 @@ module Crypto.Skein (
 import qualified Data.ByteString as BS
 import Data.ByteString.Unsafe
 import System.IO.Unsafe
-import Foreign.Storable
 import Foreign.Ptr
 import Crypto.Cipher.Threefish.Threefish256
 import Crypto.Cipher.Threefish.Threefish512
@@ -78,15 +77,6 @@ hash256 !key !bs =
                 finalTweak = setLast True $ newTweak Output
                 (b,_) = processBlock256 8 block' finalTweak zero256
             return b
-
-{-# INLINE readBlock256 #-}
-readBlock256 :: Ptr Word64 -> Int -> IO Block256
-readBlock256 ptr off = do
-  a <- peekElemOff ptr off
-  b <- peekElemOff ptr (off+1)
-  c <- peekElemOff ptr (off+2)
-  d <- peekElemOff ptr (off+3)
-  return $! Block256 a b c d
 
 {-# INLINE skein256 #-}
 -- | Hash a message using 256 bit Skein.

@@ -14,7 +14,7 @@ import qualified Data.ByteString as BS
 import Data.List (foldl1')
 
 -- | 512 bit Threefish block cipher.
-data Threefish512 = Threefish512 Tweak Key512
+data Threefish512 = Threefish512 !Tweak !Key512
 
 data Block512 = Block512 {-# UNPACK #-} !Word64
                          {-# UNPACK #-} !Word64
