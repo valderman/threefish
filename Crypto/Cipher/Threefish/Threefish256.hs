@@ -37,77 +37,96 @@ instance Serialize Threefish256 where
 -- | 256 bit Threefish block cipher.
 data Threefish256 = Threefish256 Tweak Key256
 
--- | Rotational constants for TF256
-rot :: UArray Word64 Int
-rot = listArray (0,15) [14,16,52,57,23,40,5,37,25,33,46,12,58,22,32,32]
-
 -- | Encrypt a 256 bit Threefish block. Tweak may have any value without
 --   compromising security.
 {-# INLINE encrypt256 #-}
 encrypt256 :: Key256 -> Tweak -> Block256 -> Block256
-encrypt256 (Block256 k0 k1 k2 k3) (Tweak t0 t1) !input =
-    case rounds 0 input of
-      Block256 a b c d -> Block256 (a+k3) (b+keyConst+t0) (c+k0+t1) (d+k1+18)
+encrypt256 (Block256 k0 k1 k2 k3) (Tweak t0 t1) !(Block256 a b c d) =
+    rounds 1 (Block256 (a+k0) (b+k1+t0) (c+k2+t1) (d+k3))
   where
+    k4 = keyConst`xor`k0`xor`k1`xor`k2`xor`k3
     ks :: UArray Word64 Word64
-    !ks = listArray (0, 4) [k0, k1, k2, k3, keyConst]
+    !ks = listArray (0, 4) [k0, k1, k2, k3, k4]
     ts :: UArray Word64 Word64
     !ts = listArray (0, 2) [t0, t1, t0 `xor` t1]
-    
-    rounds 18 input=
-        input
-    rounds !n !input =
-        rounds (n+1) (fourRounds input (ks ! (n `rem` 5)) x y z (n*8))
-      where
-        x = (ks ! ((n+1) `rem` 5)) + (ts ! (n `rem` 3))
-        y = (ks ! ((n+2) `rem` 5)) + (ts ! ((n+1) `rem` 3))
-        z = (ks ! ((n+3) `rem` 5)) + n
-    
-    {-# INLINE fourRounds #-}
-    fourRounds (Block256 a0 b0 c0 d0) key0 key1 key2 key3 r =
-        Block256 a4 b4 c4 d4
-      where
-        (a1, b1) = mixKey a0 b0 (rot ! (r .&. 15)) key0 key1
-        (c1, d1) = mixKey c0 d0 (rot ! ((r+1) .&. 15)) key2 key3
-        (a2, d2) = mix a1 d1 (rot ! ((r+2) .&. 15))
-        (c2, b2) = mix c1 b1 (rot ! ((r+3) .&. 15))
-        (a3, b3) = mix a2 b2 (rot ! ((r+4) .&. 15))
-        (c3, d3) = mix c2 d2 (rot ! ((r+5) .&. 15))
-        (a4, d4) = mix a3 d3 (rot ! ((r+6) .&. 15))
-        (c4, b4) = mix c3 b3 (rot ! ((r+7) .&. 15))
 
--- | Decrypt a 256 bit Threefish block.
+    rounds 10 input  = input
+    rounds !n !input = rounds (n+1) (eightRounds input n)
+
+    {-# INLINE injectKey #-}
+    injectKey a b c d r = (a + (ks ! (r`rem`5)),
+                           b + (ks ! ((r+1) `rem` 5)) + (ts ! (r `rem` 3)),
+                           c + (ks ! ((r+2) `rem` 5)) + (ts ! ((r+1) `rem` 3)),
+                           d + (ks ! ((r+3) `rem` 5)) + r)
+
+    {-# INLINE eightRounds #-}
+    eightRounds (Block256 a0 b0 c0 d0) r =
+        Block256 a'' b'' c'' d''
+      where
+        (a1, b1) = mix a0 b0 14
+        (c1, d1) = mix c0 d0 16
+        (a2, d2) = mix a1 d1 52
+        (c2, b2) = mix c1 b1 57
+        (a3, b3) = mix a2 b2 23
+        (c3, d3) = mix c2 d2 40
+        (a4, d4) = mix a3 d3 5
+        (c4, b4) = mix c3 b3 37
+        (a',b',c',d') = injectKey a4 b4 c4 d4 (2*r-1)
+        (a5, b5) = mix a' b' 25
+        (c5, d5) = mix c' d' 33
+        (a6, d6) = mix a5 d5 46
+        (c6, b6) = mix c5 b5 12
+        (a7, b7) = mix a6 b6 58
+        (c7, d7) = mix c6 d6 22
+        (a8, d8) = mix a7 d7 32
+        (c8, b8) = mix c7 b7 32
+        (a'',b'',c'',d'') = injectKey a8 b8 c8 d8 (2*r)
+
+-- | Encrypt a 256 bit Threefish block. Tweak may have any value without
+--   compromising security.
 {-# INLINE decrypt256 #-}
 decrypt256 :: Key256 -> Tweak -> Block256 -> Block256
-decrypt256 (Block256 k0 k1 k2 k3) (Tweak t0 t1) (Block256 a b c d) =
-    rounds 18 (Block256 (a-k3) (b-(keyConst+t0)) (c-(k0+t1)) (d-(k1+18)))
+decrypt256 (Block256 k0 k1 k2 k3) (Tweak t0 t1) !input =
+    case rounds 1 input of 
+      (Block256 a b c d) -> Block256 (a-k0) (b-(k1+t0)) (c-(k2+t1)) (d-k3)
   where
+    k4 = keyConst`xor`k0`xor`k1`xor`k2`xor`k3
     ks :: UArray Word64 Word64
-    !ks = listArray (0, 4) [k0, k1, k2, k3, keyConst]
+    !ks = listArray (0, 4) [k0, k1, k2, k3, k4]
     ts :: UArray Word64 Word64
     !ts = listArray (0, 2) [t0, t1, t0 `xor` t1]
-    
-    rounds 0 input=
-      input
-    rounds !n !input =
-        rounds (n-1) (fourRounds input (ks ! ((n-1) `rem` 5)) x y z ((n-1)*8))
+
+    rounds 10 input  = input
+    rounds !n !input = rounds (n+1) (eightRounds input (10-n))
+
+    {-# INLINE injectKey #-}
+    injectKey a b c d r = (a - (ks ! (r`rem`5)),
+                           b - ((ks ! ((r+1) `rem` 5)) + (ts ! (r `rem` 3))),
+                           c - ((ks ! ((r+2) `rem` 5)) + (ts ! ((r+1) `rem` 3))),
+                           d - ((ks ! ((r+3) `rem` 5)) + r))
+
+    {-# INLINE eightRounds #-}
+    eightRounds (Block256 a b c d) r =
+        Block256 a8 b8 c8 d8
       where
-        x = (ks ! (n `rem` 5)) + (ts ! ((n-1) `rem` 3))
-        y = (ks ! ((n+1) `rem` 5)) + (ts ! (n `rem` 3))
-        z = (ks ! ((n+2) `rem` 5)) + (n-1)
-    
-    {-# INLINE fourRounds #-}
-    fourRounds (Block256 a0 b0 c0 d0) key0 key1 key2 key3 r =
-        Block256 a4 b4 c4 d4
-      where
-        (a1, d1) = unmix a0 d0 (rot ! ((r+6) .&. 15))
-        (c1, b1) = unmix c0 b0 (rot ! ((r+7) .&. 15))
-        (a2, b2) = unmix a1 b1 (rot ! ((r+4) .&. 15))
-        (c2, d2) = unmix c1 d1 (rot ! ((r+5) .&. 15))
-        (a3, d3) = unmix a2 d2 (rot ! ((r+2) .&. 15))
-        (c3, b3) = unmix c2 b2 (rot ! ((r+3) .&. 15))
-        (a4, b4) = unmixKey a3 b3 (rot ! (r .&. 15)) key0 key1
-        (c4, d4) = unmixKey c3 d3 (rot ! ((r+1) .&. 15)) key2 key3
+        (a0,b0,c0,d0) = injectKey a b c d (2*r)
+        (a1, d1) = unmix a0 d0 32
+        (c1, b1) = unmix c0 b0 32
+        (a2, b2) = unmix a1 b1 58
+        (c2, d2) = unmix c1 d1 22
+        (a3, d3) = unmix a2 d2 46
+        (c3, b3) = unmix c2 b2 12
+        (a4, b4) = unmix a3 b3 25
+        (c4, d4) = unmix c3 d3 33
+        (a',b',c',d') = injectKey a4 b4 c4 d4 (2*r-1)
+        (a5, d5) = unmix a' d' 5
+        (c5, b5) = unmix c' b' 37
+        (a6, b6) = unmix a5 b5 23
+        (c6, d6) = unmix c5 d5 40
+        (a7, d7) = unmix a6 d6 52
+        (c7, b7) = unmix c6 b6 57
+        (a8, b8) = unmix a7 b7 14
+        (c8, d8) = unmix c7 d7 16
 
 instance BlockCipher Threefish256 where
   blockSize = Tagged 256
