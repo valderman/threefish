@@ -1,6 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 -- | 256 bit Threefish.
-module Crypto.Cipher.Threefish.Threefish256 where
+module Crypto.Cipher.Threefish.Threefish256 (
+    Block256 (..), Key256, Threefish256 (..),
+    encrypt256, decrypt256, readBlock256
+  ) where
 import Data.Word
 import Data.Bits
 import Crypto.Cipher.Threefish.Mix
