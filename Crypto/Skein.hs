@@ -42,15 +42,15 @@ zero256 = Block256 0 0 0 0
 -- | Process a single block of Skein 256. Call on Threefish, XOR the cryptotext
 --   with the plaintext and update the tweak.
 processBlock256 :: Word64 -> Key256 -> Tweak -> Block256 -> (Key256, Tweak)
-processBlock256 len key tweak block =
+processBlock256 !len !key !tweak !block =
     (encrypt256 key tweak' block `xb256` block, setFirst False tweak')
   where
-    tweak' = addBytes len tweak
+    !tweak' = addBytes len tweak
 
 -- | Hash a message using a particular key. For normal hashing, use all zeroes;
 --   for Skein-MAC, use the MAC key.
 hash256 :: Key256 -> BS.ByteString -> Block256
-hash256 key bs =
+hash256 !key !bs =
     case flip runGet bs' $ go len (init256 key) (newTweak Message) of
       Right x -> x
   where
@@ -58,7 +58,7 @@ hash256 key bs =
     !lastLen = case len `rem` 32 of 0 -> 32 ; n -> n
     !lastLenW64 = fromIntegral lastLen
     !bs' = BS.append bs (BS.pack $ replicate (32-lastLen) 0)
-    go n key tweak
+    go !n !key !tweak
       | n > 32 = do
         block <- get
         let (block', tweak') = processBlock256 32 key tweak block
@@ -116,15 +116,15 @@ zero512 = Block512 0 0 0 0 0 0 0 0
 -- | Process a single block of Skein 512. Call on Threefish, XOR the cryptotext
 --   with the plaintext and update the tweak.
 processBlock512 :: Word64 -> Key512 -> Tweak -> Block512 -> (Key512, Tweak)
-processBlock512 len key tweak block =
+processBlock512 !len !key !tweak !block =
     (encrypt512 key tweak' block `xb512` block, setFirst False tweak')
   where
-    tweak' = addBytes len tweak
+    !tweak' = addBytes len tweak
 
 -- | Hash a message using a particular key. For normal hashing, use all zeroes;
 --   for Skein-MAC, use the MAC key.
 hash512 :: Key512 -> BS.ByteString -> Block512
-hash512 key bs =
+hash512 !key !bs =
     case flip runGet bs' $ go len (init512 key) (newTweak Message) of
       Right x -> x
   where
@@ -132,7 +132,7 @@ hash512 key bs =
     !lastLen = case len `rem` 64 of 0 -> 64 ; n -> n
     !lastLenW64 = fromIntegral lastLen
     !bs' = BS.append bs (BS.pack $ replicate (64-lastLen) 0)
-    go n key tweak
+    go !n !key !tweak
       | n > 64 = do
         block <- get
         let (block', tweak') = processBlock512 64 key tweak block
