@@ -1,7 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 -- | 256 and 512 bit Skein. Only "normal" hashing and Skein-MAC are supported;
 --   no tree hashing, weird output lengths or other curiosities.
-module Crypto.Skein (Skein (..)) where
+module Crypto.Skein (
+    Skein (..), Block512 (..), Block256 (..), Key512, Key256
+  ) where
 import qualified Data.ByteString as BS
 import Crypto.Cipher.Threefish.Threefish256
 import Crypto.Cipher.Threefish.Threefish512
