@@ -5,6 +5,10 @@ module Crypto.Skein (
     Skein (..), Block512 (..), Block256 (..), Key512, Key256
   ) where
 import qualified Data.ByteString as BS
+import Data.ByteString.Unsafe
+import System.IO.Unsafe
+import Foreign.Storable
+import Foreign.Ptr
 import Crypto.Cipher.Threefish.Threefish256
 import Crypto.Cipher.Threefish.Threefish512
 import Crypto.Cipher.Threefish.Common
@@ -51,25 +55,38 @@ processBlock256 !len !key !tweak !block =
 --   for Skein-MAC, use the MAC key.
 hash256 :: Key256 -> BS.ByteString -> Block256
 hash256 !key !bs =
-    case flip runGet bs' $ go len (init256 key) (newTweak Message) of
-      Right x -> x
+    unsafePerformIO $ unsafeUseAsCString bs' $ \ptr -> do
+      processBlocks (castPtr ptr) 0 (init256 key) (newTweak Message)
   where
     !len = BS.length bs
+    !lastN = len `quot` 8 - 4
     !lastLen = case len `rem` 32 of 0 -> 32 ; n -> n
     !lastLenW64 = fromIntegral lastLen
     !bs' = BS.append bs (BS.pack $ replicate (32-lastLen) 0)
-    go !n !key !tweak
-      | n > 32 = do
-        block <- get
-        let (block', tweak') = processBlock256 32 key tweak block
-        go (n-32) block' tweak'
-      | otherwise = do
-        block <- get
-        let tweak' = setLast True tweak
-            (block', _) = processBlock256 lastLenW64 key tweak' block
-            finalTweak = setLast True $ newTweak Output
-            (b,_) = processBlock256 8 block' finalTweak zero256
-        return b
+    processBlocks !ptr =
+        go
+      where
+        go !n !key !tweak
+          | n < lastN = do
+            block <- readBlock256 ptr n
+            case processBlock256 32 key tweak block of
+              (block', tweak') -> go (n+4) block' tweak'
+          | otherwise = do
+            block <- readBlock256 ptr n
+            let tweak' = setLast True tweak
+                (block', _) = processBlock256 lastLenW64 key tweak' block
+                finalTweak = setLast True $ newTweak Output
+                (b,_) = processBlock256 8 block' finalTweak zero256
+            return b
+
+{-# INLINE readBlock256 #-}
+readBlock256 :: Ptr Word64 -> Int -> IO Block256
+readBlock256 ptr off = do
+  a <- peekElemOff ptr off
+  b <- peekElemOff ptr (off+1)
+  c <- peekElemOff ptr (off+2)
+  d <- peekElemOff ptr (off+3)
+  return $! Block256 a b c d
 
 {-# INLINE skein256 #-}
 -- | Hash a message using 256 bit Skein.
@@ -79,13 +96,12 @@ skein256 = hash256 zero256
 {-# INLINE skeinMAC256 #-}
 -- | Create a 256 bit Skein-MAC.
 skeinMAC256 :: Key256 -> BS.ByteString -> Block256
-skeinMAC256 =
+skeinMAC256 = undefined
   hash256 . fst . processBlock256 32 zero256 (setLast True $ newTweak Key)
 
 instance Skein Block256 where
   skeinMAC = skeinMAC256
   skein    = skein256
-
 
 
 
