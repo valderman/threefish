@@ -59,7 +59,7 @@ hash256 !key !bs =
   where
     !len = BS.length bs
     !lastN = len `quot` 8 - 4
-    !lastLen = case len `rem` 32 of 0 -> 32 ; n -> n
+    !lastLen = case len `rem` 32 of 0 -> min len 32 ; n -> n
     !lastLenW64 = fromIntegral lastLen
     !bs' = BS.append bs (BS.pack $ replicate (32-lastLen) 0)
     processBlocks !ptr =
