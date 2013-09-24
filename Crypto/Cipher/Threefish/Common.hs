@@ -34,7 +34,7 @@ parseHex = go []
 -- | Show a little endian Word64 as a string of bytes.
 showBytes :: Word64 -> String
 showBytes =
-    go 8
+    go (8 :: Int)
   where
     sr = shiftR
     go 0 _ = ""

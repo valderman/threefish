@@ -54,8 +54,8 @@ rot = listArray (0,32) [46,36,19,37,33,27,14,42,17,49,36,39,44,9,54,56,
 --   compromising security.
 {-# INLINE encrypt512 #-}
 encrypt512 :: Key512 -> Tweak -> Block512 -> Block512
-encrypt512 (Block512 k0 k1 k2 k3 k4 k5 k6 k7) (Tweak t0 t1) !input =
-    case rounds 0 input of
+encrypt512 (Block512 k0 k1 k2 k3 k4 k5 k6 k7) (Tweak t0 t1) !blockin =
+    case rounds 0 blockin of
       Block512 a b c d e f g h ->
         Block512 (a+k0) (b+k1) (c+k2) (d+k3)
                  (e+k4) (f+k5+t0) (g+k6+t1) (h+k7+18)
@@ -97,8 +97,8 @@ encrypt512 (Block512 k0 k1 k2 k3 k4 k5 k6 k7) (Tweak t0 t1) !input =
 -- | Encrypt a 512 bit Threefish block.
 {-# INLINE decrypt512 #-}
 decrypt512 :: Key512 -> Tweak -> Block512 -> Block512
-decrypt512 (Block512 k0 k1 k2 k3 k4 k5 k6 k7) (Tweak t0 t1) !input =
-    case input of
+decrypt512 (Block512 k0 k1 k2 k3 k4 k5 k6 k7) (Tweak t0 t1) !blockin =
+    case blockin of
       (Block512 a b c d e f g h) ->
         rounds 18 $ Block512 (a-k0) (b-k1) (c-k2) (d-k3)
                             (e-k4) (f-(k5+t0)) (g-(k6+t1)) (h-(k7+18))

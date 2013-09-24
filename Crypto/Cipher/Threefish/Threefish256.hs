@@ -5,8 +5,6 @@ module Crypto.Cipher.Threefish.Threefish256 (
     encrypt256, decrypt256, readBlock256, Tweak (..)
   ) where
 import Data.Word
-import Data.Bits
-import Crypto.Cipher.Threefish.Mix
 import Crypto.Cipher.Threefish.Common
 import Data.Serialize
 import Control.Applicative

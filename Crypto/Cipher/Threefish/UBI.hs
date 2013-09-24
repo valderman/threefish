@@ -1,10 +1,8 @@
 -- | Tweak manipulation for Unique Block Iteration mode.
 module Crypto.Cipher.Threefish.UBI where
-import Data.ByteString as BS
 import Data.Word
 import Data.Bits
 import Crypto.Cipher.Threefish.Common
-import Crypto.Cipher.Threefish.Class
 
 data BlockType
   = Key
