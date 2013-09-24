@@ -26,14 +26,14 @@ config256 =
 
 {-# INLINE xb256 #-}
 xb256 :: Block256 -> Block256 -> Block256
-xb256 (Block256 a) (Block256 b) = Block256 $ BS.pack $ BS.zipWith xor a b
+xb256 (Block256 a) (Block256 b) = Block256 $ BS.pack $! BS.zipWith xor a b
 
 -- | Initial state for Skein256
 init256 :: Key256 -> Block256
-init256 key = fst $ processBlock256 32 key configTweak config256
+init256 key = fst $! processBlock256 32 key configTweak config256
 
 zero256 :: Block256
-zero256 = Block256 $ BS.replicate 32 0
+zero256 = Block256 $! BS.replicate 32 0
 
 {-# INLINE processBlock256 #-}
 -- | Process a single block of Skein 256. Call on Threefish, XOR the cryptotext
@@ -61,7 +61,7 @@ hash256 !firstkey !msg =
             !block = Block256 $ BS.append bs (BS.replicate (32-len) 0)
             (block', _) = processBlock256 (fromIntegral len) key tweak' block
             !finalTweak = setLast True $ newTweak Output
-        in fst $ processBlock256 8 block' finalTweak zero256
+        in fst $! processBlock256 8 block' finalTweak zero256
 
 {-# INLINE skein256 #-}
 -- | Hash a message using 256 bit Skein.
