@@ -33,7 +33,7 @@ init256 :: Key256 -> Block256
 init256 key = fst $ processBlock256 32 key configTweak config256
 
 zero256 :: Block256
-zero256 = Block256 $ BS.pack $ replicate 32 0
+zero256 = Block256 $ BS.replicate 32 0
 
 {-# INLINE processBlock256 #-}
 -- | Process a single block of Skein 256. Call on Threefish, XOR the cryptotext
@@ -58,7 +58,7 @@ hash256 !firstkey !msg =
       | otherwise =
         let !tweak' = setLast True tweak
             !len = BS.length bs
-            !block = Block256 $ BS.append bs (BS.pack $ replicate (32-len) 0)
+            !block = Block256 $ BS.append bs (BS.replicate (32-len) 0)
             (block', _) = processBlock256 (fromIntegral len) key tweak' block
             !finalTweak = setLast True $ newTweak Output
         in fst $ processBlock256 8 block' finalTweak zero256
@@ -123,7 +123,7 @@ hash512 !firstkey !bs =
     !len = BS.length bs
     !lastLen = case len `rem` 64 of 0 -> 64 ; n -> n
     !lastLenW64 = fromIntegral lastLen
-    !bs' = BS.append bs (BS.pack $ replicate (64-lastLen) 0)
+    !bs' = BS.append bs (BS.replicate (64-lastLen) 0)
     go !n !key !tweak
       | n > 64 = do
         block <- get
