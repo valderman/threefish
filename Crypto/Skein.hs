@@ -50,17 +50,17 @@ hash256 :: Key256 -> BS.ByteString -> Block256
 hash256 !firstkey !msg =
     go msg (init256 firstkey) (newTweak Message)
   where
-    go bs !key !tweak
+    go !bs !key !tweak
       | BS.length bs > 32 =
-        let block = Block256 $ BS.take 32 bs
-        in case processBlock256 32 key tweak block of
-             (block', tweak') -> go (BS.drop 32 bs) block' tweak'
+        let (block, next) = BS.splitAt 32 bs
+        in case processBlock256 32 key tweak (Block256 block) of
+             (block', tweak') -> go next block' tweak'
       | otherwise =
-        let tweak' = setLast True tweak
-            len = BS.length bs
-            block = Block256 $ BS.append bs (BS.pack $ replicate (32-len) 0)
+        let !tweak' = setLast True tweak
+            !len = BS.length bs
+            !block = Block256 $ BS.append bs (BS.pack $ replicate (32-len) 0)
             (block', _) = processBlock256 (fromIntegral len) key tweak' block
-            finalTweak = setLast True $ newTweak Output
+            !finalTweak = setLast True $ newTweak Output
         in fst $ processBlock256 8 block' finalTweak zero256
 
 {-# INLINE skein256 #-}
