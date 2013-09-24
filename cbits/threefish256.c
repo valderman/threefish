@@ -1,10 +1,10 @@
 #include "threefish.h"
 
-void encrypt256(W64* key, W64* tweak, W64* in, W64* out) {
+void encrypt256(W64* key, W64 t0, W64 t1, W64* in, W64* out) {
   int r;
   W64 k4 = key[0] ^ key[1] ^ key[2] ^ key[3] ^ key_const;
   W64 ks[5] = {key[0], key[1], key[2], key[3], k4};
-  W64 ts[3] = {tweak[0], tweak[1], tweak[0] ^ tweak[1]};
+  W64 ts[3] = {t0, t1, t0 ^ t1};
   W64 a = in[0] + ks[0];
   W64 b = in[1] + ks[1] + ts[0];
   W64 c = in[2] + ks[2] + ts[1];
@@ -39,11 +39,11 @@ void encrypt256(W64* key, W64* tweak, W64* in, W64* out) {
   out[0] = a; out[1] = b; out[2] = c; out[3] = d;
 }
 
-void decrypt256(W64* key, W64* tweak, W64* in, W64* out) {
+void decrypt256(W64* key, W64 t0, W64 t1, W64* in, W64* out) {
   int r;
   W64 k4 = key[0] ^ key[1] ^ key[2] ^ key[3] ^ key_const;
   W64 ks[5] = {key[0], key[1], key[2], key[3], k4};
-  W64 ts[3] = {tweak[0], tweak[1], tweak[0] ^ tweak[1]};
+  W64 ts[3] = {t0, t1, t0 ^ t1};
   W64 a = in[0] + ks[0];
   W64 b = in[1] + ks[1] + ts[0];
   W64 c = in[2] + ks[2] + ts[1];

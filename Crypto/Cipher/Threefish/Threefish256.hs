@@ -18,13 +18,15 @@ import Foreign.ForeignPtr
 import System.IO.Unsafe
 
 foreign import ccall "encrypt256" c_encrypt256 :: Ptr Word64
-                                               -> Ptr Word64
+                                               -> Word64
+                                               -> Word64
                                                -> Ptr Word64
                                                -> Ptr Word64
                                                -> IO ()
 
 foreign import ccall "decrypt256" c_decrypt256 :: Ptr Word64
-                                               -> Ptr Word64
+                                               -> Word64
+                                               -> Word64
                                                -> Ptr Word64
                                                -> Ptr Word64
                                                -> IO ()
@@ -74,24 +76,16 @@ decrypt256 :: Key256 -> Tweak -> Block256 -> Block256
 decrypt256 (Block256 key) (Tweak t0 t1) (Block256 block) =
   unsafePerformIO $ unsafeUseAsCString key $ \k ->
                     unsafeUseAsCString block $ \b -> do
-                      t <- mallocForeignPtrArray 2
                       out <- mallocForeignPtrArray 4
-                      withForeignPtr t $ \t' -> do
-                        pokeElemOff t' 0 t0
-                        pokeElemOff t' 1 t1
-                        withForeignPtr out $ \out' -> do
-                          c_decrypt256 (castPtr k) t' (castPtr b) out'
-                          Block256 <$> BS.packCStringLen (castPtr out', 32)
+                      withForeignPtr out $ \out' -> do
+                        c_decrypt256 (castPtr k) t0 t1 (castPtr b) out'
+                        Block256 <$> BS.packCStringLen (castPtr out', 32)
 
 encrypt256 :: Key256 -> Tweak -> Block256 -> Block256
 encrypt256 (Block256 key) (Tweak t0 t1) (Block256 block) =
   unsafePerformIO $ unsafeUseAsCString key $ \k ->
                     unsafeUseAsCString block $ \b -> do
-                      t <- mallocForeignPtrArray 2
                       out <- mallocForeignPtrArray 4
-                      withForeignPtr t $ \t' -> do
-                        pokeElemOff t' 0 t0
-                        pokeElemOff t' 1 t1
-                        withForeignPtr out $ \out' -> do
-                          c_encrypt256 (castPtr k) t' (castPtr b) out'
-                          Block256 <$> BS.packCStringLen (castPtr out', 32)
+                      withForeignPtr out $ \out' -> do
+                        c_encrypt256 (castPtr k) t0 t1 (castPtr b) out'
+                        Block256 <$> unsafePackCStringLen (castPtr out', 32)
