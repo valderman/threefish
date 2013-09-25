@@ -18,7 +18,7 @@ emptyKey = Block256 BS.empty
 
 -- | Default amount of random bytes to buffer.
 defaultSkeinGenPoolSize :: Int
-defaultSkeinGenPoolSize = 512
+defaultSkeinGenPoolSize = 256
 
 -- | Skein-based PRNG as defined in the Skein 1.3 paper.
 data SkeinGen = SkeinGen {
