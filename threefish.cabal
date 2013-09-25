@@ -1,6 +1,6 @@
 name:                threefish
 version:             0.1
-synopsis:            Pure Haskell implementation of the Threefish block cipher and the Skein hash function built upon it.
+synopsis:            The Threefish block cipher and the Skein hash function plus PRNG for Haskell.
 -- description:         
 homepage:            http://github.com/valderman/threefish
 license:             BSD3
