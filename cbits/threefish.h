@@ -19,6 +19,9 @@ typedef enum {
 
 void encrypt256(W64* key, W64 t0, W64 t1, W64* in, W64* out);
 void decrypt256(W64* key, W64 t0, W64 t1, W64* in, W64* out);
+
+/* IMPORTANT: out must point to memory enough to hold outlen bytes, rounded
+   up to the nearest block size */
 void hash256(W64* key, W64 len, W64* data, int outlen, W64* out);
 
 inline void init_tweak(UBIType type, W64* t);

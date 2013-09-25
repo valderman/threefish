@@ -5,13 +5,11 @@ module Crypto.Threefish (
     Block256 (..), Threefish256, Key256,
     Block512 (..), Threefish512, Key512,
     Tweak (..), parseHex, readHex, defaultTweak,
-    Threefish (..),
-    Skein (..)
+    Threefish (..)
 ) where
 import Crypto.Threefish.Threefish256 as TF256
 import Crypto.Threefish.Threefish512 as TF512
 import Crypto.Threefish.Common as Common
-import Crypto.Threefish.Skein as Skein
 import Data.Serialize
 
 class Serialize a => Threefish a b | a -> b where

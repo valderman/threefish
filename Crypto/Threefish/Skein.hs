@@ -1,7 +1,8 @@
 {-# LANGUAGE BangPatterns, OverloadedStrings, ForeignFunctionInterface #-}
 -- | 256 and 512 bit Skein. Supports "normal" hashing and Skein-MAC.
 module Crypto.Threefish.Skein (
-    Skein (..), hash256, hash512
+    Skein (..), Block256 (..), Block512 (..), Key256, Key512,
+    hash256, hash512
   ) where
 import qualified Data.ByteString as BS
 import Crypto.Threefish.Threefish256
@@ -36,13 +37,10 @@ hash256 outlen (Block256 key) !msg = unsafePerformIO $ do
       unsafeUseAsCString msg $ \b -> do
         out <- mallocForeignPtrArray outwords
         withForeignPtr out $ \out' -> do
-          c_hash256 (keyptr k) len (castPtr b) outlen out'
+          c_hash256 (keyptr k) len (castPtr b) outwords out'
           BS.packCStringLen (castPtr out', outlen)
   where
-    !outwords =
-      case quotRem outlen 8 of
-        (n, 0) -> n
-        (n, _) -> n+1
+    !outwords = outlen + (32 - outlen `rem` 32)
     !len = fromIntegral $ BS.length msg
     keyptr k | BS.length key == 32 = castPtr k
              | otherwise           = nullPtr

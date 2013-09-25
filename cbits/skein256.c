@@ -54,8 +54,14 @@ void hash256(W64* key, W64 len, W64* data, int outlen, W64* out) {
   k[3] ^= buf[3];
 
   /* Output pass */
-  init_tweak(T_OUT, tweak);
-  set_last(1, tweak);
-  add_bytes(8, tweak);
-  encrypt256(k, tweak[0], tweak[1], zeroes, out);
+  buf[0] = 0; buf[1] = 0; buf[2] = 0; buf[3] = 0;
+  while(outlen > 0) {
+    init_tweak(T_OUT, tweak);
+    set_last(1, tweak);
+    add_bytes(8, tweak);
+    encrypt256(k, tweak[0], tweak[1], buf, out);
+    outlen -= 32;
+    out += 4;
+    ++buf[0];
+  }
 }
