@@ -1,5 +1,7 @@
 #include "threefish.h"
 
+W64 key_const = 0x1BD11BDAA9FC1A22;
+
 void encrypt256(W64* key, W64 t0, W64 t1, W64* in, W64* out) {
   int r;
   W64 k4 = key[0] ^ key[1] ^ key[2] ^ key[3] ^ key_const;

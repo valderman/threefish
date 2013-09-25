@@ -40,4 +40,7 @@ library
   ghc-options: -Wall -O2
   cc-options: -O2
   include-dirs: cbits
-  c-sources: cbits/threefish256.c
+  c-sources:
+    cbits/threefish256.c,
+    cbits/skein256.c,
+    cbits/ubi.c

@@ -88,4 +88,4 @@ encrypt256 (Block256 key) (Tweak t0 t1) (Block256 block) =
                       out <- mallocForeignPtrArray 4
                       withForeignPtr out $ \out' -> do
                         c_encrypt256 (castPtr k) t0 t1 (castPtr b) out'
-                        Block256 <$> unsafePackCStringLen (castPtr out', 32)
+                        Block256 <$> BS.packCStringLen (castPtr out', 32)

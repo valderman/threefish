@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings, ForeignFunctionInterface #-}
 -- | 256 and 512 bit Skein. Only "normal" hashing and Skein-MAC are supported;
 --   no tree hashing, weird output lengths or other curiosities.
 module Crypto.Skein (
@@ -11,68 +11,52 @@ import Crypto.Cipher.Threefish.UBI
 import Data.Bits
 import Data.Serialize
 import Data.Word
+import Data.ByteString.Unsafe
+import Foreign.Ptr
+import Foreign.ForeignPtr
+import System.IO.Unsafe
+
+foreign import ccall "hash256" c_hash256 :: Ptr Word64
+                                         -> Word64
+                                         -> Ptr Word64
+                                         -> Int
+                                         -> Ptr Word64
+                                         -> IO ()
 
 class Skein a where
-  -- | Calculate the Skein-MAC of a message. Keys may be created by
-  --   de-serializing a ByteString or by constructing stitching together 4/8
-  --   Word64 in a Block256/Block512.
+  -- | Calculate the Skein-MAC of a message.
   skeinMAC :: a -> BS.ByteString -> a
   -- | Calculate the Skein checksum of a message.
   skein :: BS.ByteString -> a
 
-config256 :: Block256
-config256 =
-  Block256 "SHA3\1\0\0\0\0\1\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-
-{-# INLINE xb256 #-}
-xb256 :: Block256 -> Block256 -> Block256
-xb256 (Block256 a) (Block256 b) = Block256 $ BS.pack $! BS.zipWith xor a b
-
--- | Initial state for Skein256
-init256 :: Key256 -> Block256
-init256 key = fst $! processBlock256 32 key configTweak config256
-
-zero256 :: Block256
-zero256 = Block256 $! BS.replicate 32 0
-
-{-# INLINE processBlock256 #-}
--- | Process a single block of Skein 256. Call on Threefish, XOR the cryptotext
---   with the plaintext and update the tweak.
-processBlock256 :: Word64 -> Key256 -> Tweak -> Block256 -> (Key256, Tweak)
-processBlock256 !len !key !tweak !block =
-    (encrypt256 key tweak' block `xb256` block, setFirst False tweak')
+-- | Hash a message using a particular key. For normal hashing, use an empty
+--   ByteString; for Skein-MAC, use the MAC key.
+hash256 :: Int -> Key256 -> BS.ByteString -> BS.ByteString
+hash256 outlen (Block256 key) !msg = unsafePerformIO $ do
+    unsafeUseAsCString key $ \k -> do
+      unsafeUseAsCString msg $ \b -> do
+        out <- mallocForeignPtrArray outwords
+        withForeignPtr out $ \out' -> do
+          c_hash256 (keyptr k) len (castPtr b) outlen out'
+          BS.packCStringLen (castPtr out', outlen)
   where
-    !tweak' = addBytes len tweak
-
--- | Hash a message using a particular key. For normal hashing, use all zeroes;
---   for Skein-MAC, use the MAC key.
-hash256 :: Key256 -> BS.ByteString -> Block256
-hash256 !firstkey !msg =
-    go msg (init256 firstkey) (newTweak Message)
-  where
-    go !bs !key !tweak
-      | BS.length bs > 32 =
-        let (block, next) = BS.splitAt 32 bs
-        in case processBlock256 32 key tweak (Block256 block) of
-             (block', tweak') -> go next block' tweak'
-      | otherwise =
-        let !tweak' = setLast True tweak
-            !len = BS.length bs
-            !block = Block256 $ BS.append bs (BS.replicate (32-len) 0)
-            (block', _) = processBlock256 (fromIntegral len) key tweak' block
-            !finalTweak = setLast True $ newTweak Output
-        in fst $! processBlock256 8 block' finalTweak zero256
+    !outwords =
+      case quotRem outlen 8 of
+        (n, 0) -> n
+        (n, _) -> n+1
+    !len = fromIntegral $ BS.length msg
+    keyptr k | BS.length key == 32 = castPtr k
+             | otherwise           = nullPtr
 
 {-# INLINE skein256 #-}
 -- | Hash a message using 256 bit Skein.
 skein256 :: BS.ByteString -> Block256
-skein256 = hash256 zero256
+skein256 = Block256 . hash256 32 (Block256 "")
 
 {-# INLINE skeinMAC256 #-}
 -- | Create a 256 bit Skein-MAC.
 skeinMAC256 :: Key256 -> BS.ByteString -> Block256
-skeinMAC256 =
-  hash256 . fst . processBlock256 32 zero256 (setLast True $ newTweak Key)
+skeinMAC256 key = Block256 . hash256 32 key
 
 instance Skein Block256 where
   skeinMAC = skeinMAC256
