@@ -15,15 +15,14 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:
-    Crypto.Skein,
-    Crypto.Cipher.Threefish
+    Crypto.Threefish.Skein,
+    Crypto.Threefish
   other-modules:
-    Crypto.Cipher.Threefish.Mix,
-    Crypto.Cipher.Threefish.Threefish256,
-    Crypto.Cipher.Threefish.Common
-    Crypto.Cipher.Threefish.UBI,
-    Crypto.Cipher.Threefish.Threefish512,
-    Crypto.Cipher.Threefish.Class
+    Crypto.Threefish.Mix,
+    Crypto.Threefish.Threefish256,
+    Crypto.Threefish.Common
+    Crypto.Threefish.UBI,
+    Crypto.Threefish.Threefish512
   other-extensions:
     BangPatterns,
     MultiParamTypeClasses,

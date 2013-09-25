@@ -1,11 +1,11 @@
 {-# LANGUAGE BangPatterns, ForeignFunctionInterface #-}
 -- | 256 bit Threefish.
-module Crypto.Cipher.Threefish.Threefish256 (
+module Crypto.Threefish.Threefish256 (
     Block256 (..), Key256, Threefish256 (..),
     encrypt256, decrypt256, readBlock256, Tweak (..)
   ) where
 import Data.Word
-import Crypto.Cipher.Threefish.Common
+import Crypto.Threefish.Common
 import Data.Serialize
 import Control.Applicative
 import Crypto.Classes

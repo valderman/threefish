@@ -1,8 +1,8 @@
 -- | Tweak manipulation for Unique Block Iteration mode.
-module Crypto.Cipher.Threefish.UBI where
+module Crypto.Threefish.UBI where
 import Data.Word
 import Data.Bits
-import Crypto.Cipher.Threefish.Common
+import Crypto.Threefish.Common
 
 data BlockType
   = Key

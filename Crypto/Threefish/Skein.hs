@@ -1,13 +1,12 @@
 {-# LANGUAGE BangPatterns, OverloadedStrings, ForeignFunctionInterface #-}
--- | 256 and 512 bit Skein. Only "normal" hashing and Skein-MAC are supported;
---   no tree hashing, weird output lengths or other curiosities.
-module Crypto.Skein (
-    Skein (..), Block512 (..), Block256 (..), Key512, Key256
+-- | 256 and 512 bit Skein. Supports "normal" hashing and Skein-MAC.
+module Crypto.Threefish.Skein (
+    Skein (..), hash256, hash512
   ) where
 import qualified Data.ByteString as BS
-import Crypto.Cipher.Threefish.Threefish256
-import Crypto.Cipher.Threefish.Threefish512
-import Crypto.Cipher.Threefish.UBI
+import Crypto.Threefish.Threefish256
+import Crypto.Threefish.Threefish512
+import Crypto.Threefish.UBI
 import Data.Bits
 import Data.Serialize
 import Data.Word
@@ -67,8 +66,6 @@ instance Skein Block256 where
 ---------------------
 -- 512 bit version --
 ---------------------
-
--- TODO: clean this up using type classes and stuff; way too copy-pasty!
 
 config512 :: Block512
 config512 = Block512 0x0000000133414853 512 0 0 0 0 0 0

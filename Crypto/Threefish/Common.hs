@@ -1,5 +1,5 @@
 -- | Misc. shared constants and functions.
-module Crypto.Cipher.Threefish.Common (
+module Crypto.Threefish.Common (
     Tweak (..), showBytes, keyConst, e2m, defaultTweak, parseHex, readHex
   ) where
 import Numeric (showHex)

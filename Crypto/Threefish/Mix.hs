@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
-module Crypto.Cipher.Threefish.Mix where
+module Crypto.Threefish.Mix where
 import Data.Word
 import Data.Bits
 

@@ -1,10 +1,10 @@
 {-# LANGUAGE BangPatterns #-}
 -- | 512 bit Threefish.
-module Crypto.Cipher.Threefish.Threefish512 where
+module Crypto.Threefish.Threefish512 where
 import Data.Word
 import Data.Bits
-import Crypto.Cipher.Threefish.Mix
-import Crypto.Cipher.Threefish.Common
+import Crypto.Threefish.Mix
+import Crypto.Threefish.Common
 import Data.Array.Unboxed
 import Data.Serialize
 import Control.Applicative
