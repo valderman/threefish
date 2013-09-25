@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   exposed-modules:
     Crypto.Threefish,
+    Crypto.Threefish.Random,
     Crypto.Threefish.Skein
   other-modules:
     Crypto.Threefish.Common,
@@ -35,7 +36,8 @@ library
     crypto-api >=0.12,
     tagged >=0.4,
     data-default >=0.5,
-    random
+    random,
+    entropy >= 0.2.2.2
   default-language:    Haskell2010
   ghc-options: -Wall -O2
   cc-options: -O2
