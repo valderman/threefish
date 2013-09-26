@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, OverloadedStrings, ForeignFunctionInterface #-}
 -- | 256 and 512 bit Skein. Supports "normal" hashing and Skein-MAC.
 module Crypto.Threefish.Skein (
-    Skein (..), Block256 (..), Block512 (..), Key256, Key512,
+    Skein (..), Block256 (..), Block512 (..), Key256, Key512, Nonce256,
     hash256, hash512
   ) where
 import qualified Data.ByteString as BS
@@ -16,11 +16,12 @@ import Foreign.Ptr
 import Foreign.ForeignPtr
 import System.IO.Unsafe
 
-foreign import ccall "hash256" c_hash256 :: Ptr Word64
-                                         -> Word64
-                                         -> Ptr Word64
-                                         -> Int
-                                         -> Ptr Word64
+foreign import ccall "hash256" c_hash256 :: Ptr Word64 -- ^ Key (nullPtr for none)
+                                         -> Ptr Word64 -- ^ Nonce (nullPtr for none)
+                                         -> Word64     -- ^ Message length
+                                         -> Ptr Word64 -- ^ Message
+                                         -> Int        -- ^ Size of output, in bytes
+                                         -> Ptr Word64 -- ^ Output blocks pointer
                                          -> IO ()
 
 class Skein a where
@@ -29,31 +30,40 @@ class Skein a where
   -- | Calculate the Skein checksum of a message.
   skein :: BS.ByteString -> a
 
+type Nonce256 = Block256
+
 -- | Hash a message using a particular key. For normal hashing, use an empty
 --   ByteString; for Skein-MAC, use the MAC key.
-hash256 :: Int -> Key256 -> BS.ByteString -> BS.ByteString
-hash256 outlen (Block256 key) !msg = unsafePerformIO $ do
-    unsafeUseAsCString key $ \k -> do
-      unsafeUseAsCString msg $ \b -> do
-        out <- mallocForeignPtrArray outwords
-        withForeignPtr out $ \out' -> do
-          c_hash256 (keyptr k) len (castPtr b) outlen out'
-          BS.packCStringLen (castPtr out', outlen)
+hash256 :: Int -> Key256 -> Nonce256 -> BS.ByteString -> BS.ByteString
+hash256 outlen (Block256 key) (Block256 nonce) !msg =
+    unsafePerformIO $
+      withKey $ \k -> do
+        withNonce $ \n -> do
+          unsafeUseAsCString msg $ \b -> do
+            out <- mallocForeignPtrArray (outblocks*32)
+            withForeignPtr out $ \out' -> do
+              c_hash256 k n len (castPtr b) outlen out'
+              BS.packCStringLen (castPtr out', outlen)
   where
-    !outwords = outlen + case 32 - outlen `rem` 32 of 32 -> 0 ; pad -> pad
+    outblocks =
+      case outlen `quotRem` 32 of
+        (blocks, 0) -> blocks
+        (blocks, _) -> blocks+1
     !len = fromIntegral $ BS.length msg
-    keyptr k | BS.length key == 32 = castPtr k
-             | otherwise           = nullPtr
+    withKey f | BS.length key == 32 = unsafeUseAsCString key (f . castPtr)
+                | otherwise         = f nullPtr
+    withNonce f | BS.length nonce == 32 = unsafeUseAsCString nonce (f . castPtr)
+                | otherwise             = f nullPtr
 
 {-# INLINE skein256 #-}
 -- | Hash a message using 256 bit Skein.
 skein256 :: BS.ByteString -> Block256
-skein256 = Block256 . hash256 32 (Block256 "")
+skein256 = Block256 . hash256 32 (Block256 "") (Block256 "")
 
 {-# INLINE skeinMAC256 #-}
 -- | Create a 256 bit Skein-MAC.
 skeinMAC256 :: Key256 -> BS.ByteString -> Block256
-skeinMAC256 key = Block256 . hash256 32 key
+skeinMAC256 key = Block256 . hash256 32 key (Block256 "")
 
 instance Skein Block256 where
   skeinMAC = skeinMAC256

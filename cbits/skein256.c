@@ -1,8 +1,11 @@
 #include "threefish.h"
 #include <string.h>
 
-void hash256(W64* key, W64 len, W64* data, int outlen, W64* out) {
-  W64 config[4] = {0x0000000133414853, outlen*8, 0, 0};
+void hash256(W64* key, W64* nonce, W64 len, W64* data, int outlen, W64* out) {
+  W64 config[4] = {0x0000000133414853,
+                   /* size parameter is 2^64-1 for stream cipher mode */
+                   nonce ? 0xffffffffffffffffL : outlen*8,
+                   0, 0};
   W64 tweak[2];
   W64 buf[4];
   W64 k[4] = {0,0,0,0};
@@ -19,24 +22,32 @@ void hash256(W64* key, W64 len, W64* data, int outlen, W64* out) {
     encrypt256(k, tweak[0], tweak[1], key, k);
     k[0] ^= key[0]; k[1] ^= key[1]; k[2] ^= key[2]; k[3] ^= key[3];
   }
+
+  /* Process config string */
   mk_config_tweak(tweak);
   add_bytes(32, tweak);
-  encrypt256(k, tweak[0], tweak[1], config, buf);
-  k[0] = config[0] ^ buf[0];
-  k[1] = config[1] ^ buf[1];
-  k[2] = config[2] ^ buf[2];
-  k[3] = config[3] ^ buf[3];
+  encrypt256(k, tweak[0], tweak[1], config, k);
+  k[0] ^= config[0]; k[1] ^= config[1]; k[2] ^= config[2]; k[3] ^= config[3];
 
-  /* Process the actual message */
+  /* Process nonce, if available; must be 32 bytes */
+  if(nonce != NULL) {
+    init_tweak(T_NONCE, tweak);
+    set_last(1, tweak);
+    add_bytes(32, tweak);
+    encrypt256(k, tweak[0], tweak[1], nonce, k);
+    k[0] ^= nonce[0]; k[1] ^= nonce[1]; k[2] ^= nonce[2]; k[3] ^= nonce[3];
+  }
+
+  /* Process message */
   init_tweak(T_MSG, tweak);
   while(len > 32) {
     add_bytes(32, tweak);
-    encrypt256(k, tweak[0], tweak[1], data, buf);
+    encrypt256(k, tweak[0], tweak[1], data, k);
     set_first(0, tweak);
-    k[0] = buf[0] ^ *data; ++data;
-    k[1] = buf[1] ^ *data; ++data;
-    k[2] = buf[2] ^ *data; ++data;
-    k[3] = buf[3] ^ *data; ++data;
+    k[0] ^= *data; ++data;
+    k[1] ^= *data; ++data;
+    k[2] ^= *data; ++data;
+    k[3] ^= *data; ++data;
     len -= 32;
   }
 
