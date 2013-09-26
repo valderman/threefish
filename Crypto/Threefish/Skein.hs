@@ -37,10 +37,10 @@ hash256 outlen (Block256 key) !msg = unsafePerformIO $ do
       unsafeUseAsCString msg $ \b -> do
         out <- mallocForeignPtrArray outwords
         withForeignPtr out $ \out' -> do
-          c_hash256 (keyptr k) len (castPtr b) outwords out'
+          c_hash256 (keyptr k) len (castPtr b) outlen out'
           BS.packCStringLen (castPtr out', outlen)
   where
-    !outwords = outlen + (32 - outlen `rem` 32)
+    !outwords = outlen + case 32 - outlen `rem` 32 of 32 -> 0 ; pad -> pad
     !len = fromIntegral $ BS.length msg
     keyptr k | BS.length key == 32 = castPtr k
              | otherwise           = nullPtr
