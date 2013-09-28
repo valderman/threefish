@@ -28,22 +28,17 @@ class Skein a where
 
 type Nonce256 = Block256
 
-init256 :: Key256 -> Nonce256 -> Word64 -> Skein256Ctx
-init256 (Block256 k) (Block256 n) outlen =
+init256 :: Key256 -> Word64 -> Skein256Ctx
+init256 (Block256 k) outlen =
     unsafePerformIO $ do
       c <- mallocForeignPtrBytes 64
       withForeignPtr c $ \ctx -> do
         withKey $ \key -> do
           skein256_init ctx (castPtr key) (outlen*8)
-          case BS.length n of
-            0 -> return () -- don't do nonce pass if there is no nonce
-            _ -> unsafeUseAsCString n $ \nonce -> do
-              skein256_update ctx 3 (type2int Nonce) len (castPtr nonce)
       return (Skein256Ctx c)
   where
     withKey f | BS.length k == 32 = unsafeUseAsCString k (f . castPtr)
               | otherwise         = f nullPtr
-    len = fromIntegral $ BS.length n
 
 update256 :: Skein256Ctx -> Int -> BSL.ByteString -> BS.ByteString
 update256 (Skein256Ctx c) outblocks bytes =
@@ -60,17 +55,17 @@ update256 (Skein256Ctx c) outblocks bytes =
           | otherwise -> do
               let !chunk' =
                     BSL.toStrict chunk
-                  (!last, !len) =
+                  (!lst, !len) =
                     if BSL.null rest
                       then (2, fromIntegral $ BS.length chunk')
                       else (0, 16384)
               unsafeUseAsCString chunk' $ \ptr -> do
-                skein256_update ctx (first .|. last) msgtype len (castPtr ptr)
+                skein256_update ctx (first .|. lst) msgtype len (castPtr ptr)
               go 0 rest ctx
 
-hash256 :: Word64 -> Key256 -> Nonce256 -> BSL.ByteString -> BS.ByteString
-hash256 outlen k n bs =
-    case init256 k n outlen of
+hash256 :: Word64 -> Key256 -> BSL.ByteString -> BS.ByteString
+hash256 outlen k bs =
+    case init256 k outlen of
       ctx -> update256 ctx (fromIntegral outblocks) bs
   where
     outblocks =
@@ -81,12 +76,12 @@ hash256 outlen k n bs =
 {-# INLINE skein256 #-}
 -- | Hash a message using 256 bit Skein.
 skein256 :: BSL.ByteString -> Block256
-skein256 = Block256 . hash256 32 (Block256 "") (Block256 "")
+skein256 = Block256 . hash256 32 (Block256 "")
 
 {-# INLINE skeinMAC256 #-}
 -- | Create a 256 bit Skein-MAC.
 skeinMAC256 :: Key256 -> BSL.ByteString -> Block256
-skeinMAC256 key = Block256 . hash256 32 key (Block256 "")
+skeinMAC256 key = Block256 . hash256 32 key
 
 instance Skein Block256 where
   skeinMAC = skeinMAC256

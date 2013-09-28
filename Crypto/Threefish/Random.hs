@@ -80,7 +80,7 @@ randomBytes nbytes (SkeinGen (Block256 state) pool poolsize)
   where
     -- Use all of the output to avoid making unnecessary calls
     nbytes' = fromIntegral $ 32 + max (nbytes + (32-(nbytes`rem`32))) poolsize
-    bytes = hash256 nbytes' emptyKey emptyKey (BSL.fromStrict state)
+    bytes = hash256 nbytes' emptyKey (BSL.fromStrict state)
     (state', buffer) = BS.splitAt 32 bytes
     (out, pool') = BS.splitAt (nbytes - BS.length pool) buffer
 
