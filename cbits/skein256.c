@@ -1,8 +1,8 @@
 #include "threefish.h"
 #include <string.h>
 
-void skein256_init(skein_t* ctx, W64* key, int outlen) {
-  W64 config[4] = {0x0000000133414853, outlen*8, 0, 0};
+void skein256_init(skein_t* ctx, W64* key, W64 outlen) {
+  W64 config[4] = {0x0000000133414853, outlen, 0, 0};
   static W64 zeroes[4] = {0,0,0,0};
 
   /* Set up key if needed */
@@ -85,10 +85,10 @@ void skein256_output(skein_t* ctx, int from, int to, W64* out) {
   }
 }
 
-void hash256(W64* key, W64* nonce, W64 len, W64* data, int outlen, W64* out) {
+void hash256(W64* key, W64* nonce, W64 len, W64* data, W64 outlen, W64* out) {
   skein_t ctx;
 
-  skein256_init(&ctx, key, outlen);
+  skein256_init(&ctx, key, outlen*8);
 
   /* Process nonce, if available; must be 32 bytes */
   if(nonce != NULL) {

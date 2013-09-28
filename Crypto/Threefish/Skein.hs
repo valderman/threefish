@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, OverloadedStrings, ForeignFunctionInterface #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
 -- | 256 and 512 bit Skein. Supports "normal" hashing and Skein-MAC.
 module Crypto.Threefish.Skein (
     Skein (..), Block256 (..), Block512 (..), Key256, Key512, Nonce256,
@@ -8,6 +8,7 @@ import qualified Data.ByteString as BS
 import Crypto.Threefish.Threefish256
 import Crypto.Threefish.Threefish512
 import Crypto.Threefish.UBI
+import Crypto.Threefish.Skein.Internal
 import Data.Bits
 import Data.Serialize
 import Data.Word
@@ -15,14 +16,6 @@ import Data.ByteString.Unsafe
 import Foreign.Ptr
 import Foreign.ForeignPtr
 import System.IO.Unsafe
-
-foreign import ccall "hash256" c_hash256 :: Ptr Word64 -- ^ Key (nullPtr for none)
-                                         -> Ptr Word64 -- ^ Nonce (nullPtr for none)
-                                         -> Word64     -- ^ Message length
-                                         -> Ptr Word64 -- ^ Message
-                                         -> Int        -- ^ Size of output, in bytes
-                                         -> Ptr Word64 -- ^ Output blocks pointer
-                                         -> IO ()
 
 class Skein a where
   -- | Calculate the Skein-MAC of a message.
@@ -34,16 +27,16 @@ type Nonce256 = Block256
 
 -- | Hash a message using a particular key. For normal hashing, use an empty
 --   ByteString; for Skein-MAC, use the MAC key.
-hash256 :: Int -> Key256 -> Nonce256 -> BS.ByteString -> BS.ByteString
+hash256 :: Word64 -> Key256 -> Nonce256 -> BS.ByteString -> BS.ByteString
 hash256 outlen (Block256 key) (Block256 nonce) !msg =
     unsafePerformIO $
       withKey $ \k -> do
         withNonce $ \n -> do
           unsafeUseAsCString msg $ \b -> do
-            out <- mallocForeignPtrArray (outblocks*32)
+            out <- mallocForeignPtrArray (fromIntegral $ outblocks*32)
             withForeignPtr out $ \out' -> do
               c_hash256 k n len (castPtr b) outlen out'
-              BS.packCStringLen (castPtr out', outlen)
+              BS.packCStringLen (castPtr out', fromIntegral outlen)
   where
     outblocks =
       case outlen `quotRem` 32 of

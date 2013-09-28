@@ -1,4 +1,3 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
 -- | 256 bit Skein as a stream cipher, as specified in the Skein 1.3 paper.
 module Crypto.Threefish.Skein.StreamCipher (
     Key256, Nonce256, Block256 (..),
@@ -6,24 +5,15 @@ module Crypto.Threefish.Skein.StreamCipher (
   ) where
 import Crypto.Threefish.Skein (Key256, Nonce256, Block256 (..))
 import Crypto.Threefish.UBI
+import Crypto.Threefish.Skein.Internal
 import Data.ByteString.Unsafe
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Foreign.ForeignPtr
 import Foreign.Ptr
 import Foreign.Marshal.Alloc
-import Data.Word
 import System.IO.Unsafe
 import Data.Bits (xor)
-
-newtype Skein256Ctx = Skein256Ctx (ForeignPtr Word64)
-
-foreign import ccall skein256_init ::
-  Ptr Word64 -> Ptr Word64 -> Int -> IO ()
-foreign import ccall skein256_update ::
-  Ptr Word64 -> Int -> Int -> Word64 -> Ptr Word64 -> IO ()
-foreign import ccall skein256_output ::
-  Ptr Word64 -> Int -> Int -> Ptr Word64 -> IO ()
 
 init256 :: Key256 -> Nonce256 -> Skein256Ctx
 init256 (Block256 k) (Block256 n) =

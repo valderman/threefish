@@ -65,7 +65,7 @@ randomBytes nbytes (SkeinGen (Block256 state) pool poolsize)
       (BS.append pool out, SkeinGen (Block256 state') pool' poolsize)
   where
     -- Use all of the output to avoid making unnecessary calls
-    nbytes' = 32 + max (nbytes + (32-(nbytes`rem`32))) poolsize
+    nbytes' = fromIntegral $ 32 + max (nbytes + (32-(nbytes`rem`32))) poolsize
     bytes = hash256 nbytes' emptyKey emptyKey state
     (state', buffer) = BS.splitAt 32 bytes
     (out, pool') = BS.splitAt (nbytes - BS.length pool) buffer
