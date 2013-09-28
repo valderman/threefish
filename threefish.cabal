@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   exposed-modules:
     Crypto.Threefish,
+    Crypto.Threefish.Authenticated,
     Crypto.Threefish.Random,
     Crypto.Threefish.Skein,
     Crypto.Threefish.Skein.KDF,
