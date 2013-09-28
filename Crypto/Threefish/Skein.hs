@@ -5,6 +5,7 @@ module Crypto.Threefish.Skein (
     hash256, hash512
   ) where
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
 import Crypto.Threefish.Threefish256
 import Crypto.Threefish.Threefish512
 import Crypto.Threefish.UBI
@@ -16,47 +17,75 @@ import Data.Word
 import Data.ByteString.Unsafe
 import Foreign.Ptr
 import Foreign.ForeignPtr
+import Foreign.Marshal.Alloc
 import System.IO.Unsafe
 
 class Skein a where
   -- | Calculate the Skein-MAC of a message.
-  skeinMAC :: a -> BS.ByteString -> a
+  skeinMAC :: a -> BSL.ByteString -> a
   -- | Calculate the Skein checksum of a message.
-  skein :: BS.ByteString -> a
+  skein :: BSL.ByteString -> a
 
 type Nonce256 = Block256
 
--- | Hash a message using a particular key. For normal hashing, use an empty
---   ByteString; for Skein-MAC, use the MAC key.
-hash256 :: Word64 -> Key256 -> Nonce256 -> BS.ByteString -> BS.ByteString
-hash256 outlen (Block256 key) (Block256 nonce) !msg =
-    unsafePerformIO $
-      withKey $ \k -> do
-        withNonce $ \n -> do
-          unsafeUseAsCString msg $ \b -> do
-            out <- mallocForeignPtrArray (fromIntegral $ outblocks*32)
-            withForeignPtr out $ \out' -> do
-              c_hash256 k n len (castPtr b) outlen out'
-              BS.packCStringLen (castPtr out', fromIntegral outlen)
+init256 :: Key256 -> Nonce256 -> Word64 -> Skein256Ctx
+init256 (Block256 k) (Block256 n) outlen =
+    unsafePerformIO $ do
+      c <- mallocForeignPtrBytes 64
+      withForeignPtr c $ \ctx -> do
+        withKey $ \key -> do
+          skein256_init ctx (castPtr key) (outlen*8)
+          case BS.length n of
+            0 -> return () -- don't do nonce pass if there is no nonce
+            _ -> unsafeUseAsCString n $ \nonce -> do
+              skein256_update ctx 3 (type2int Nonce) len (castPtr nonce)
+      return (Skein256Ctx c)
+  where
+    withKey f | BS.length k == 32 = unsafeUseAsCString k (f . castPtr)
+              | otherwise         = f nullPtr
+    len = fromIntegral $ BS.length n
+
+update256 :: Skein256Ctx -> Int -> BSL.ByteString -> BS.ByteString
+update256 (Skein256Ctx c) outblocks bytes =
+    unsafePerformIO $ withForeignPtr c $ go 1 bytes
+  where
+    !msgtype = type2int Message
+    go !first !msg !ctx = do
+      case BSL.splitAt 16384 msg of
+        (chunk, rest)
+          | BSL.null chunk ->
+            allocaBytes 32 $ \ptr -> do
+              skein256_output ctx 0 (outblocks-1) ptr
+              BS.packCStringLen (castPtr ptr, 32)
+          | otherwise -> do
+              let !chunk' =
+                    BSL.toStrict chunk
+                  (!last, !len) =
+                    if BSL.null rest
+                      then (2, fromIntegral $ BS.length chunk')
+                      else (0, 16384)
+              unsafeUseAsCString chunk' $ \ptr -> do
+                skein256_update ctx (first .|. last) msgtype len (castPtr ptr)
+              go 0 rest ctx
+
+hash256 :: Word64 -> Key256 -> Nonce256 -> BSL.ByteString -> BS.ByteString
+hash256 outlen k n bs =
+    case init256 k n outlen of
+      ctx -> update256 ctx (fromIntegral outblocks) bs
   where
     outblocks =
       case outlen `quotRem` 32 of
         (blocks, 0) -> blocks
         (blocks, _) -> blocks+1
-    !len = fromIntegral $ BS.length msg
-    withKey f | BS.length key == 32 = unsafeUseAsCString key (f . castPtr)
-                | otherwise         = f nullPtr
-    withNonce f | BS.length nonce == 32 = unsafeUseAsCString nonce (f . castPtr)
-                | otherwise             = f nullPtr
 
 {-# INLINE skein256 #-}
 -- | Hash a message using 256 bit Skein.
-skein256 :: BS.ByteString -> Block256
+skein256 :: BSL.ByteString -> Block256
 skein256 = Block256 . hash256 32 (Block256 "") (Block256 "")
 
 {-# INLINE skeinMAC256 #-}
 -- | Create a 256 bit Skein-MAC.
-skeinMAC256 :: Key256 -> BS.ByteString -> Block256
+skeinMAC256 :: Key256 -> BSL.ByteString -> Block256
 skeinMAC256 key = Block256 . hash256 32 key (Block256 "")
 
 instance Skein Block256 where
@@ -97,16 +126,16 @@ processBlock512 !len !key !tweak !block =
 
 -- | Hash a message using a particular key. For normal hashing, use all zeroes;
 --   for Skein-MAC, use the MAC key.
-hash512 :: Key512 -> BS.ByteString -> Block512
+hash512 :: Key512 -> BSL.ByteString -> Block512
 hash512 !firstkey !bs =
-    case flip runGet bs' $ go len (init512 firstkey) (newTweak Message) of
+    case flip runGetLazy bs' $ go len (init512 firstkey) (newTweak Message) of
       Right x -> x
       Left _  -> error "hash512 failed to get output bytes - impossible!"
   where
-    !len = BS.length bs
+    !len = BSL.length bs
     !lastLen = case len `rem` 64 of 0 -> 64 ; n -> n
     !lastLenW64 = fromIntegral lastLen
-    !bs' = BS.append bs (BS.replicate (64-lastLen) 0)
+    !bs' = BSL.append bs (BSL.replicate (64-fromIntegral lastLen) 0)
     go !n !key !tweak
       | n > 64 = do
         block <- get
@@ -122,12 +151,12 @@ hash512 !firstkey !bs =
 
 {-# INLINE skein512 #-}
 -- | Hash a message using 512 bit Skein.
-skein512 :: BS.ByteString -> Block512
+skein512 :: BSL.ByteString -> Block512
 skein512 = hash512 zero512
 
 {-# INLINE skeinMAC512 #-}
 -- | Create a 512 bit Skein-MAC.
-skeinMAC512 :: Key512 -> BS.ByteString -> Block512
+skeinMAC512 :: Key512 -> BSL.ByteString -> Block512
 skeinMAC512 =
   hash512 . fst . processBlock512 64 zero512 (setLast True $ newTweak Key)
 

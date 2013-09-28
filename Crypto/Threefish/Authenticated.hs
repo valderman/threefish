@@ -71,7 +71,7 @@ encrypt' k n plaintext =
   where
     (cryptKey, macKey) = deriveKeys k
     cryptotext = SC.encrypt cryptKey n plaintext
-    mac = skeinMAC macKey (BSL.toStrict cryptotext)
+    mac = skeinMAC macKey cryptotext
 
 -- | Verify and decrypt a message.
 decrypt' :: Key256 -> Encrypted a -> Either DecryptFailure Plaintext
@@ -80,7 +80,7 @@ decrypt' k (Encrypted n mac cryptotext) = do
     return $! SC.decrypt cryptKey n cryptotext
   where
     (cryptKey, macKey) = deriveKeys k
-    mac' = skeinMAC macKey (BSL.toStrict cryptotext)
+    mac' = skeinMAC macKey cryptotext
 
 -- | Encrypt-then-MAC any serializable value.
 --   The 256 bit nonce is generated using a Skein-based PRNG seeded from the

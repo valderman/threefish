@@ -33,16 +33,6 @@ void skein256_init(skein_t* ctx, W64* key, W64 outlen);
 void skein256_update(skein_t* ctx, int firstlast, UBIType type, W64 len, W64* data);
 void skein256_output(skein_t* ctx, int from, int to, W64* out);
 
-/* IMPORTANT: out must point to memory enough to hold outlen bytes rounded up
-              to the nearest multiple of 32! */
-/* note that here outlen is in *bytes* */
-void hash256(W64* key,
-             W64* nonce,
-             W64 len,
-             W64* data,
-             W64 outlen,
-             W64* out);
-
 inline void init_tweak(UBIType type, W64* t);
 inline void mk_config_tweak(W64* t);
 inline void set_type(UBIType type, W64* t);

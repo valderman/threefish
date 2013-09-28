@@ -84,22 +84,3 @@ void skein256_output(skein_t* ctx, int from, int to, W64* out) {
     ++buf[0];
   }
 }
-
-void hash256(W64* key, W64* nonce, W64 len, W64* data, W64 outlen, W64* out) {
-  skein_t ctx;
-
-  skein256_init(&ctx, key, outlen*8);
-
-  /* Process nonce, if available; must be 32 bytes */
-  if(nonce != NULL) {
-    skein256_update(&ctx, 3, T_NONCE, 32, nonce);
-  }
-
-  skein256_update(&ctx, 3, T_MSG, len, data);
-  if(outlen % 32 == 0) {
-    outlen = outlen / 32;
-  } else {
-    outlen = (outlen / 32) + 1;
-  }
-  skein256_output(&ctx, 0, outlen, out);
-}

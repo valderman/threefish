@@ -9,6 +9,7 @@ import Crypto.Threefish.Threefish256
 import System.Random
 import System.Entropy
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Unsafe
 import System.IO.Unsafe
 import Foreign.Storable (sizeOf, peek)
@@ -54,7 +55,7 @@ mkSkeinGen = mkSkeinGenEx defaultSkeinGenPoolSize . Block256 . encode
 --   across splits.
 mkSkeinGenEx :: Int -> Block256 -> SkeinGen
 mkSkeinGenEx poolsize (Block256 seed) = SkeinGen {
-    sgState    = skein (BS.replicate 32 0 `BS.append` seed),
+    sgState    = skein $ BSL.fromStrict (BS.replicate 32 0 `BS.append` seed),
     sgPool     = BS.empty,
     sgPoolSize = poolsize
   }
@@ -63,7 +64,7 @@ mkSkeinGenEx poolsize (Block256 seed) = SkeinGen {
 reseedSkeinGen :: Block256 -> SkeinGen -> SkeinGen
 reseedSkeinGen (Block256 seed) (SkeinGen (Block256 state) _ poolsize) =
   SkeinGen {
-    sgState    = skein (state `BS.append` seed),
+    sgState    = skein $ BSL.fromStrict (state `BS.append` seed),
     sgPool     = BS.empty,
     sgPoolSize = poolsize
   }
@@ -79,7 +80,7 @@ randomBytes nbytes (SkeinGen (Block256 state) pool poolsize)
   where
     -- Use all of the output to avoid making unnecessary calls
     nbytes' = fromIntegral $ 32 + max (nbytes + (32-(nbytes`rem`32))) poolsize
-    bytes = hash256 nbytes' emptyKey emptyKey state
+    bytes = hash256 nbytes' emptyKey emptyKey (BSL.fromStrict state)
     (state', buffer) = BS.splitAt 32 bytes
     (out, pool') = BS.splitAt (nbytes - BS.length pool) buffer
 
