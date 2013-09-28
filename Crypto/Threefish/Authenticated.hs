@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | Authenticated encryption using Skein for PRNG, KDF, stream cipher and MAC.
 module Crypto.Threefish.Authenticated (
-    DecryptFailure (..), Encrypted, Plaintext, Block256, Nonce256,
-    encrypt, decrypt, encrypt', decrypt', generateNonce, toBlock, fromBlock
+    DecryptFailure (..), Encrypted, Plaintext, Block256, Nonce256, Bytes (..),
+    encrypt, decrypt, encrypt', decrypt', encryptBytes, decryptBytes,
+    generateNonce, toBlock, fromBlock
   ) where
 import Crypto.Threefish
 import Crypto.Threefish.Threefish256 (Block256(..))
@@ -31,6 +32,7 @@ generateNonce =
 type MAC256 = Block256
 type Plaintext = BSL.ByteString
 
+newtype Bytes = Bytes BSL.ByteString
 data DecryptFailure = BadMAC | NoDecode String deriving Show
 
 -- | An encrypt-then-MACed value. The binary format is as follows:
@@ -93,9 +95,15 @@ decrypt' k (Encrypted n mac cryptotext) = do
 --   to the master key, with the key identifiers "crypt" and "mac"
 --   respectively, zero padded at the end until 32 bytes.
 encrypt :: Serialize a => Key256 -> a -> Encrypted a
-encrypt k x = unsafePerformIO $ do
+encrypt k x =  unsafePerformIO $ do
   nonce <- generateNonce
   return $! encrypt' k nonce (runPutLazy (put x))
+
+-- | Encrypt-then-MAC a lazy ByteString.
+encryptBytes :: Key256 -> BSL.ByteString -> Encrypted Bytes
+encryptBytes k bs = unsafePerformIO $ do
+  nonce <- generateNonce
+  return $! encrypt' k nonce bs
 
 -- | Decrypt and decode a message. Will fail if there is a MAC mismatch or if
 --   the message can't be decoded into the given data type.
@@ -105,3 +113,11 @@ decrypt k enc = do
   case runGetLazy get plaintext of
     Right x  -> return x
     Left err -> Left (NoDecode err)
+
+-- | Verify and decrypt a lazy ByteString.
+decryptBytes :: Key256 -> BSL.ByteString -> Either DecryptFailure Plaintext
+decryptBytes k bs = do
+  enc <- case runGetLazy get bs of
+           Right x  -> return x
+           Left err -> Left (NoDecode err)
+  decrypt' k enc
