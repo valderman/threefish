@@ -17,7 +17,8 @@ library
   exposed-modules:
     Crypto.Threefish,
     Crypto.Threefish.Random,
-    Crypto.Threefish.Skein
+    Crypto.Threefish.Skein,
+    Crypto.Threefish.Skein.StreamCipher
   other-modules:
     Crypto.Threefish.Common,
     Crypto.Threefish.Mix,
@@ -30,7 +31,7 @@ library
     FunctionalDependencies
   build-depends:
     base >=4.6 && <5,
-    bytestring >=0.10,
+    bytestring >=0.10.2.0,
     cereal >=0.3,
     array >=0.4,
     crypto-api >=0.12,

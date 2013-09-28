@@ -24,6 +24,16 @@ type2w64 Nonce           = 20
 type2w64 Message         = 48
 type2w64 Output          = 63
 
+type2int :: BlockType -> Int
+type2int Key             = 0
+type2int Config          = 4
+type2int Personalization = 8
+type2int PublicKey       = 12
+type2int KeyIdentifier   = 16
+type2int Nonce           = 20
+type2int Message         = 48
+type2int Output          = 63
+
 {-# INLINE newTweak #-}
 newTweak :: BlockType -> Tweak
 newTweak t = setType t $ setFirst True $ Tweak 0 0
