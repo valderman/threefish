@@ -58,6 +58,8 @@ encrypt k n plaintext =
           | otherwise ->
             let chunk' = BSL.toStrict chunk
             in  return $ (BS.pack $ BS.zipWith xor ks chunk') : go kss rest
+    go _ _ =
+      error "The key stream is infinite, so this will never happen."
 
 -- | Encryption and decryption are the same operation for a stream cipher, but
 --   we may want to have a function called encrypt for clarity.
