@@ -18,6 +18,7 @@ library
     Crypto.Threefish,
     Crypto.Threefish.Random,
     Crypto.Threefish.Skein,
+    Crypto.Threefish.Skein.KDF,
     Crypto.Threefish.Skein.StreamCipher
   other-modules:
     Crypto.Threefish.Common,
