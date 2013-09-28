@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | Authenticated encryption using Skein for PRNG, KDF, stream cipher and MAC.
 module Crypto.Threefish.Authenticated (
-    DecryptFailure (..), Encrypted, Plaintext, Block256, Nonce256, Bytes (..),
-    Key256,
+    DecryptFailure (..), Encrypted, Plaintext, Block256, Nonce256, Key256,
     encrypt, decrypt, encrypt', decrypt', encryptBytes, decryptBytes,
     generateNonce, toBlock, fromBlock
   ) where
@@ -33,7 +32,6 @@ generateNonce =
 type MAC256 = Block256
 type Plaintext = BSL.ByteString
 
-newtype Bytes = Bytes BSL.ByteString
 data DecryptFailure = BadMAC | NoDecode String deriving Show
 
 -- | An encrypt-then-MACed value. The binary format is as follows:
