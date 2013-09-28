@@ -1,7 +1,8 @@
 -- | Skein 256 as a PRNG.
 module Crypto.Threefish.Random (
     SkeinGen, Block256, Random (..), RandomGen (..),
-    newSkeinGen, mkSkeinGen, mkSkeinGenEx, randomBytes, toBlock, fromBlock
+    newSkeinGen, mkSkeinGen, mkSkeinGenEx, randomBytes, reseedSkeinGen,
+    toBlock, fromBlock
   ) where
 import Crypto.Threefish.Skein
 import Crypto.Threefish.Threefish256
@@ -13,6 +14,8 @@ import System.IO.Unsafe
 import Foreign.Storable (sizeOf, peek)
 import Foreign.Ptr (castPtr)
 import Data.Serialize
+import Crypto.Random
+import Data.Tagged
 
 emptyKey :: Key256
 emptyKey = Block256 BS.empty
@@ -56,6 +59,15 @@ mkSkeinGenEx poolsize (Block256 seed) = SkeinGen {
     sgPoolSize = poolsize
   }
 
+-- | Reseed a Skein PRNG.
+reseedSkeinGen :: Block256 -> SkeinGen -> SkeinGen
+reseedSkeinGen (Block256 seed) (SkeinGen (Block256 state) _ poolsize) =
+  SkeinGen {
+    sgState    = skein (state `BS.append` seed),
+    sgPool     = BS.empty,
+    sgPoolSize = poolsize
+  }
+
 -- | Generate n random bytes using the given generator.
 randomBytes :: Int -> SkeinGen -> (BS.ByteString, SkeinGen)
 randomBytes nbytes (SkeinGen (Block256 state) pool poolsize)
@@ -70,3 +82,22 @@ randomBytes nbytes (SkeinGen (Block256 state) pool poolsize)
     bytes = hash256 nbytes' emptyKey emptyKey state
     (state', buffer) = BS.splitAt 32 bytes
     (out, pool') = BS.splitAt (nbytes - BS.length pool) buffer
+
+instance CryptoRandomGen SkeinGen where
+  newGen seed =
+    case BS.length seed of
+      n | n >= 32 ->
+          Right $ mkSkeinGenEx ps (Block256 $ BS.take 32 seed)
+        | otherwise ->
+          Left NotEnoughEntropy
+    where ps = defaultSkeinGenPoolSize
+  genSeedLength = Tagged 32
+  genBytes n g =Right $ randomBytes n g
+  reseedInfo = const Never
+  reseedPeriod = const Never
+  reseed seed g =
+    case BS.length seed of
+      n | n >= 32 ->
+          Right $ reseedSkeinGen (Block256 $ BS.take 32 seed) g
+        | otherwise ->
+          Left NotEnoughEntropy
