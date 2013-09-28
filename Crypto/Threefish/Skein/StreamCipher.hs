@@ -53,7 +53,7 @@ encrypt k n plaintext =
     go (ks:kss) msg = unsafePerformIO . unsafeInterleaveIO $ do
       case BSL.splitAt 256 msg of
         (chunk, rest)
-          | BSL.null rest ->
+          | BSL.null chunk ->
             return []
           | otherwise ->
             let chunk' = BSL.toStrict chunk
