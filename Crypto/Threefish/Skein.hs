@@ -41,17 +41,21 @@ init256 (Block256 k) outlen =
               | otherwise         = f nullPtr
 
 update256 :: Skein256Ctx -> Int -> BSL.ByteString -> BS.ByteString
-update256 (Skein256Ctx c) outblocks bytes =
+update256 (Skein256Ctx c) outlen bytes =
     unsafePerformIO $ withForeignPtr c $ go 1 bytes
   where
+    outblocks =
+      case outlen `quotRem` 32 of
+        (blocks, 0) -> blocks
+        (blocks, _) -> blocks+1
     !msgtype = type2int Message
     go !first !msg !ctx = do
       case BSL.splitAt 16384 msg of
         (chunk, rest)
           | BSL.null chunk ->
-            allocaBytes 32 $ \ptr -> do
+            allocaBytes (outblocks*32) $ \ptr -> do
               skein256_output ctx 0 (outblocks-1) ptr
-              BS.packCStringLen (castPtr ptr, 32)
+              BS.packCStringLen (castPtr ptr, outlen)
           | otherwise -> do
               let !chunk' =
                     BSL.toStrict chunk
@@ -66,12 +70,7 @@ update256 (Skein256Ctx c) outblocks bytes =
 hash256 :: Word64 -> Key256 -> BSL.ByteString -> BS.ByteString
 hash256 outlen k bs =
     case init256 k outlen of
-      ctx -> update256 ctx (fromIntegral outblocks) bs
-  where
-    outblocks =
-      case outlen `quotRem` 32 of
-        (blocks, 0) -> blocks
-        (blocks, _) -> blocks+1
+      ctx -> update256 ctx (fromIntegral outlen) bs
 
 {-# INLINE skein256 #-}
 -- | Hash a message using 256 bit Skein.

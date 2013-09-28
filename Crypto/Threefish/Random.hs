@@ -93,7 +93,7 @@ instance CryptoRandomGen SkeinGen where
           Left NotEnoughEntropy
     where ps = defaultSkeinGenPoolSize
   genSeedLength = Tagged 32
-  genBytes n g =Right $ randomBytes n g
+  genBytes n g = Right $ randomBytes n g
   reseedInfo = const Never
   reseedPeriod = const Never
   reseed seed g =
