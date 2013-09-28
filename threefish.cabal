@@ -13,6 +13,10 @@ build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
 
+source-repository head
+    type:       git
+    location:   https://github.com/valderman/threefish.git
+
 library
   exposed-modules:
     Crypto.Threefish,
