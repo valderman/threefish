@@ -2,6 +2,7 @@
 -- | Authenticated encryption using Skein for PRNG, KDF, stream cipher and MAC.
 module Crypto.Threefish.Authenticated (
     DecryptFailure (..), Encrypted, Plaintext, Block256, Nonce256, Bytes (..),
+    Key256,
     encrypt, decrypt, encrypt', decrypt', encryptBytes, decryptBytes,
     generateNonce, toBlock, fromBlock
   ) where
