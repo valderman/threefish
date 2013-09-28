@@ -101,10 +101,10 @@ encrypt k x =  unsafePerformIO $ do
   return $! encrypt' k nonce (runPutLazy (put x))
 
 -- | Encrypt-then-MAC a lazy ByteString.
-encryptBytes :: Key256 -> BSL.ByteString -> Encrypted Bytes
+encryptBytes :: Key256 -> BSL.ByteString -> BSL.ByteString
 encryptBytes k bs = unsafePerformIO $ do
   nonce <- generateNonce
-  return $! encrypt' k nonce bs
+  return $! runPutLazy $! put (encrypt' k nonce bs)
 
 -- | Decrypt and decode a message. Will fail if there is a MAC mismatch or if
 --   the message can't be decoded into the given data type.
