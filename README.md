@@ -1,11 +1,21 @@
 Threefish
 =========
 
-Haskell implementation of the Threefish block cipher and the Skein
-hash function built on it. Skein is usable in "normal" mode, as well as for
-Skein-MAC and as a cryptographically secure PRNG.
+Haskell implementation of the Threefish block cipher and the various fun
+things you can do with it as specified by the Skein 1.3 paper.
+This currently includes:
 
-For Skein 256, this is about 50% slower than the wrapped C version in the
-`skein` package, so if you're not after the block cipher you should just use
-that package instead. The 512 bit version is written in pure Haskell at the
-moment, and is quite a bit slower.
+* Threefish block cipher
+* Skein hash function
+* Skein-MAC
+* PRNG
+* Stream cipher
+* Key derivation function
+
+There's also a convenience module that puts it all together, for a simple
+interface to authenticated encryption.
+
+For Skein 256, this package is about 35% slower than the wrapped C version in
+the `skein` package, so if you're only after the hash function you should use
+that package instead. The 512 bit variant is written in pure Haskell, and
+quite a bit slower still.
