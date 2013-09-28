@@ -1,10 +1,12 @@
 -- | 256 bit Skein as a stream cipher, as specified in the Skein 1.3 paper.
 module Crypto.Threefish.Skein.StreamCipher (
-    Key256, Nonce256, Block256 (..),
-    encrypt, decrypt
+    Key256, Nonce256, Block256,
+    encrypt, decrypt, toBlock, fromBlock
   ) where
-import Crypto.Threefish.Skein (Key256, Nonce256, Block256 (..))
+import Crypto.Threefish.Skein (Nonce256)
 import Crypto.Threefish.UBI
+import Crypto.Threefish.Threefish256
+import Crypto.Threefish
 import Crypto.Threefish.Skein.Internal
 import Data.ByteString.Unsafe
 import qualified Data.ByteString as BS

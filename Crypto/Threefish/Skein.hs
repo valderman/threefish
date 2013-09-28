@@ -1,13 +1,14 @@
-{-# LANGUAGE BangPatterns, OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings, MultiParamTypeClasses #-}
 -- | 256 and 512 bit Skein. Supports "normal" hashing and Skein-MAC.
 module Crypto.Threefish.Skein (
-    Skein (..), Block256 (..), Block512 (..), Key256, Key512, Nonce256,
+    Skein (..), Threefish (..), Block256, Block512, Key256, Key512, Nonce256,
     hash256, hash512
   ) where
 import qualified Data.ByteString as BS
 import Crypto.Threefish.Threefish256
 import Crypto.Threefish.Threefish512
 import Crypto.Threefish.UBI
+import Crypto.Threefish
 import Crypto.Threefish.Skein.Internal
 import Data.Bits
 import Data.Serialize

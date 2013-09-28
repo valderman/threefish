@@ -1,9 +1,10 @@
 -- | Skein 256 as a PRNG.
 module Crypto.Threefish.Random (
-    SkeinGen, Block256 (..), Random (..), RandomGen (..),
-    newSkeinGen, mkSkeinGen, mkSkeinGenEx, randomBytes
+    SkeinGen, Block256, Random (..), RandomGen (..),
+    newSkeinGen, mkSkeinGen, mkSkeinGenEx, randomBytes, toBlock, fromBlock
   ) where
 import Crypto.Threefish.Skein
+import Crypto.Threefish.Threefish256
 import System.Random
 import System.Entropy
 import qualified Data.ByteString as BS
