@@ -17,19 +17,19 @@ import Foreign.Ptr
 import Foreign.ForeignPtr
 import System.IO.Unsafe
 
-foreign import ccall "encrypt256" c_encrypt256 :: Ptr Word64
-                                               -> Word64
-                                               -> Word64
-                                               -> Ptr Word64
-                                               -> Ptr Word64
-                                               -> IO ()
+foreign import ccall unsafe "encrypt256" c_encrypt256 :: Ptr Word64
+                                                      -> Word64
+                                                      -> Word64
+                                                      -> Ptr Word64
+                                                      -> Ptr Word64
+                                                      -> IO ()
 
-foreign import ccall "decrypt256" c_decrypt256 :: Ptr Word64
-                                               -> Word64
-                                               -> Word64
-                                               -> Ptr Word64
-                                               -> Ptr Word64
-                                               -> IO ()
+foreign import ccall unsafe "decrypt256" c_decrypt256 :: Ptr Word64
+                                                      -> Word64
+                                                      -> Word64
+                                                      -> Ptr Word64
+                                                      -> Ptr Word64
+                                                      -> IO ()
 
 newtype Block256 = Block256 BS.ByteString deriving Eq
 type Key256 = Block256
