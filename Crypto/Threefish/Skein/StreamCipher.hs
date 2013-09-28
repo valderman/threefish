@@ -36,10 +36,10 @@ stream256 (Skein256Ctx c) =
   where
     go n = unsafeInterleaveIO $ do
       bs <- withForeignPtr c $ \ctx -> do
-        allocaBytes 256 $ \ptr -> do
-          skein256_output ctx n (n+8) ptr
-          BS.packCStringLen (castPtr ptr, 256)
-      bss <- go (n+8)
+        allocaBytes 1024 $ \ptr -> do
+          skein256_output ctx n (n+32) ptr
+          BS.packCStringLen (castPtr ptr, 1024)
+      bss <- go (n+32)
       return $ bs : bss
 
 keystream256 :: Key256 -> Nonce256 -> [BS.ByteString]
@@ -51,7 +51,7 @@ encrypt k n plaintext =
     BSL.fromChunks $ go (keystream256 k n) plaintext
   where
     go (ks:kss) msg = unsafePerformIO . unsafeInterleaveIO $ do
-      case BSL.splitAt 256 msg of
+      case BSL.splitAt 1024 msg of
         (chunk, rest)
           | BSL.null chunk ->
             return []
