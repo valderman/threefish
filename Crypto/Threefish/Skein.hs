@@ -58,7 +58,7 @@ update256 (Skein256Ctx c) outlen bytes =
               BS.packCStringLen (castPtr ptr, outlen)
           | otherwise -> do
               let !chunk' =
-                    BSL.toStrict chunk
+                    toStrict chunk
                   (!lst, !len) =
                     if BSL.null rest
                       then (2, fromIntegral $ BS.length chunk')
@@ -66,6 +66,9 @@ update256 (Skein256Ctx c) outlen bytes =
               unsafeUseAsCString chunk' $ \ptr -> do
                 skein256_update ctx (first .|. lst) msgtype len (castPtr ptr)
               go 0 rest ctx
+
+toStrict :: BSL.ByteString -> BS.ByteString
+toStrict = BS.concat . BSL.toChunks
 
 hash256 :: Word64 -> Key256 -> BSL.ByteString -> BS.ByteString
 hash256 outlen k bs =
