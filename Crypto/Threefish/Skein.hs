@@ -78,7 +78,7 @@ hash256 outlen k bs =
 {-# INLINE skein256 #-}
 -- | Hash a message using 256 bit Skein.
 skein256 :: BSL.ByteString -> Block256
-skein256 = Block256 . hash256 32 (Block256 "")
+skein256 = Block256 . hash256 32 (Block256 BS.empty)
 
 {-# INLINE skeinMAC256 #-}
 -- | Create a 256 bit Skein-MAC.
