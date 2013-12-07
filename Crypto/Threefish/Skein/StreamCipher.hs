@@ -32,14 +32,13 @@ init256 (Block256 k) (Block256 n) =
 
 stream256 :: Skein256Ctx -> [BS.ByteString]
 stream256 (Skein256Ctx c) =
-    unsafePerformIO $ go 0
+    unsafePerformIO $ withForeignPtr c $ go 0
   where
-    go n = unsafeInterleaveIO $ do
-      bs <- withForeignPtr c $ \ctx -> do
-        allocaBytes 1024 $ \ptr -> do
-          skein256_output ctx n (n+32) ptr
-          BS.packCStringLen (castPtr ptr, 1024)
-      bss <- go (n+32)
+    go n ctx = unsafeInterleaveIO $ do
+      bs <- allocaBytes 1024 $ \ptr -> do
+        skein256_output ctx n (n+32) ptr
+        BS.packCStringLen (castPtr ptr, 1024)
+      bss <- go (n+32) ctx
       return $ bs : bss
 
 keystream256 :: Key256 -> Nonce256 -> [BS.ByteString]
