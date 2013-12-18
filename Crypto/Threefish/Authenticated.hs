@@ -22,6 +22,15 @@ import Control.Monad
 prng :: IORef SkeinGen
 prng = unsafePerformIO $ newSkeinGen >>= newIORef
 
+-- | Strict version of 'atomicModifyIORef'.  This forces both the value stored
+-- in the 'IORef' as well as the value returned.
+atomicModifyIORef' :: IORef a -> (a -> (a,b)) -> IO b
+atomicModifyIORef' ref f = do
+    b <- atomicModifyIORef ref
+            (\x -> let (a, b) = f x
+                    in (a, a `seq` b))
+    b `seq` return b
+
 -- | Generate a 256 bit nonce using the Skein PRNG.
 generateNonce :: IO Nonce256
 generateNonce =
