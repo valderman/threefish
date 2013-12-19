@@ -24,8 +24,8 @@ prng = unsafePerformIO $ newSkeinGen >>= newIORef
 
 -- | Strict version of 'atomicModifyIORef'.  This forces both the value stored
 -- in the 'IORef' as well as the value returned.
-atomicModifyIORef' :: IORef a -> (a -> (a,b)) -> IO b
-atomicModifyIORef' ref f = do
+atomicModIORef' :: IORef a -> (a -> (a,b)) -> IO b
+atomicModIORef' ref f = do
     b <- atomicModifyIORef ref
             (\x -> let (a, b) = f x
                     in (a, a `seq` b))
@@ -34,7 +34,7 @@ atomicModifyIORef' ref f = do
 -- | Generate a 256 bit nonce using the Skein PRNG.
 generateNonce :: IO Nonce256
 generateNonce =
-    Block256 `fmap` atomicModifyIORef' prng (pflip . randomBytes 32)
+    Block256 `fmap` atomicModIORef' prng (pflip . randomBytes 32)
   where
     pflip (a, b) = (b, a)
 
